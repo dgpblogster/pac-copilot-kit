@@ -47,6 +47,11 @@ function Connect-PckPowerPlatform {
         $EnvironmentUrl = Resolve-PckOrgUrl -EnvironmentId $EnvironmentId
     }
     $EnvironmentUrl = $EnvironmentUrl.TrimEnd('/')
+    if ($EnvironmentUrl -notmatch '(?i)^https://') {
+        throw [PckPreflightError]::new(
+            "Environment URL '$EnvironmentUrl' must be https. A bearer token is attached to every call, and it does not travel over plain http.",
+            $script:PckExitCode.EnvironmentUrlInvalid)
+    }
 
     $script:PckToken = $null
     $script:PckContext = [pscustomobject]@{

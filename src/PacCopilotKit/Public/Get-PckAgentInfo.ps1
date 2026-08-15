@@ -44,7 +44,7 @@ function Get-PckAgentInfo {
         $rows = @($rows | Where-Object { $_.name -like $Name -or $_.schemaname -like $Name })
     }
 
-    $result = foreach ($row in $rows) {
+    $result = @(foreach ($row in $rows) {
         [pscustomobject]@{
             BotId      = $row.botid
             Name       = $row.name
@@ -52,7 +52,8 @@ function Get-PckAgentInfo {
             Template   = $row.template
             Harness    = Get-PckHarnessFromTemplate -Template $row.template
         }
-    }
+    })
 
-    if ($Json) { @($result) | ConvertTo-Json -Depth 4 -AsArray } else { $result }
+    # -InputObject keeps the array shape: an empty result is '[]', never null or [null].
+    if ($Json) { ConvertTo-Json -InputObject $result -Depth 4 } else { $result }
 }

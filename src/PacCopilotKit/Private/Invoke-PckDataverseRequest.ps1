@@ -50,8 +50,23 @@ function Invoke-PckDataverseRequest {
             $script:PckExitCode.NotConnected)
     }
 
+    # Guards inspect a normalized view of the request: absolute URLs reduced to
+    # their data-relative path, leading slashes stripped, and string bodies parsed
+    # as JSON when they are JSON. A guard that can be bypassed by respelling the
+    # same request is not a guard.
+    $guardPath = $Path
+    if ($guardPath -match '(?i)^https?://[^/]+/api/data/v\d+\.\d+/(.+)$') {
+        $guardPath = $Matches[1]
+    }
+    $guardPath = $guardPath.TrimStart('/')
+
+    $guardBody = $Body
+    if ($Body -is [string]) {
+        try { $guardBody = $Body | ConvertFrom-Json } catch { }
+    }
+
     foreach ($guard in $script:PckRequestConstructionGuards) {
-        & $guard -Method $Method -Path $Path -Body $Body
+        & $guard -Method $Method -Path $guardPath -Body $guardBody
     }
 
     $Headers = $Headers.Clone()

@@ -16,6 +16,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 - `Private/EntitySetPluralOverrides.psd1` with the `dvtablesearchs` entry.
 - `docs/war-stories.md` with stories 1 and 2, satisfying canon 6 for both shipped guards.
 - `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
+- `tests/PacCopilotKit.Tests/PckAdversarial.Tests.ps1`: 13 adversarial tests written red-first against the walking skeleton; 7 landed as real defects, fixed below. Suite total 44 unit tests, all passing.
+
+### Fixed
+- Savedquery guard (war story 1) was bypassable by respelling the request: absolute URL, leading-slash path, raw JSON string body, and a query string on the single-property route all slipped past. The funnel now normalizes the path and parses string bodies before guard dispatch, and the guard's suffix match tolerates query strings.
+- `Get-PckAgentInfo -Json` returned null on an empty result set instead of `[]`, breaking canon 8's one-well-formed-object contract.
+- `Connect-PckPowerPlatform` accepted a plain-http `-EnvironmentUrl`, which would have sent bearer tokens over http. Refused with new preflight exit code 16.
 - `LICENSE` (MIT), `README.md` public entrypoint, `.gitignore`.
 - Repository initialized with git. First commit.
 - Design §12.8 closed: Web API funnel acquires its own token, independent of `pac`. CI uses SPN client credentials with no extra dependency; dev resolves `PCK_ACCESS_TOKEN`, then `az`, then `Az.Accounts`.

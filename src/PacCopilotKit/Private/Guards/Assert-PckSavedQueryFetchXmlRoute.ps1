@@ -20,7 +20,7 @@ function Assert-PckSavedQueryFetchXmlRoute {
     if ($Method -notin @('Patch', 'Put')) { return }
     if ($Path -notmatch '(?i)^savedqueries\(') { return }
 
-    $touchesFetchXml = $Path -match '(?i)\)/fetchxml$'
+    $touchesFetchXml = $Path -match '(?i)\)/fetchxml(\?|$)'
     if (-not $touchesFetchXml -and $null -ne $Body -and $Body -isnot [string]) {
         $props = if ($Body -is [System.Collections.IDictionary]) { @($Body.Keys) }
                  else { @($Body.PSObject.Properties.Name) }
