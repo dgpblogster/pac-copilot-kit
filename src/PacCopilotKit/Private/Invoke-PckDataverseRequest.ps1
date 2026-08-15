@@ -131,7 +131,14 @@ function Invoke-PckDataverseRequest {
             $code = if ($detail -and $detail.PSObject.Properties['code']) { $detail.code } else { "HTTP $status" }
             $message = if ($detail -and $detail.PSObject.Properties['message']) { $detail.message } else { $_.Exception.Message }
 
-            # Response-translation guards (design 6.2) will dispatch on $code here.
+            # Response translators (design 6.2): known failure signatures become
+            # war-story guidance instead of an opaque code.
+            foreach ($translator in $script:PckResponseTranslators) {
+                $translated = & $translator -Method $Method -Path $guardPath -Body $guardBody -Code $code -Message $message
+                if ($translated) {
+                    throw [PckError]::new($translated, $script:PckExitCode.KnownBrokenRoute)
+                }
+            }
             throw [PckError]::new(
                 "Dataverse request failed: $Method $Path. Code: $code. $message",
                 $script:PckExitCode.General)

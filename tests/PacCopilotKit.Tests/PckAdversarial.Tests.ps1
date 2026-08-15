@@ -12,7 +12,10 @@ BeforeAll {
     Import-Module $modulePath -Force
 }
 
-Describe 'Savedquery guard bypass attempts (war story 1 must hold)' {
+Describe 'Savedquery translation bypass attempts (war story 1 must hold)' {
+    # Since the 2026-08-15 redesign the funnel attempts the call and translates
+    # the failure. The adversarial property that must hold: no respelling of the
+    # same failing request escapes translation into an opaque error.
     BeforeAll {
         InModuleScope PacCopilotKit {
             $script:PckContext = [pscustomobject]@{
@@ -34,11 +37,17 @@ Describe 'Savedquery guard bypass attempts (war story 1 must hold)' {
     }
     BeforeEach {
         Mock -ModuleName PacCopilotKit Invoke-WebRequest {
-            [pscustomobject]@{ StatusCode = 204; Content = ''; Headers = @{} }
+            $ex = [Microsoft.PowerShell.Commands.HttpResponseException]::new(
+                'Response status code does not indicate success: 400 (Bad Request).',
+                [System.Net.Http.HttpResponseMessage]::new(400))
+            $er = [System.Management.Automation.ErrorRecord]::new($ex, 'WebCmdletWebResponseException', 'InvalidOperation', $null)
+            $er.ErrorDetails = [System.Management.Automation.ErrorDetails]::new(
+                '{"error":{"code":"0x80040216","message":"An unexpected error occurred."}}')
+            throw $er
         }
     }
 
-    It 'is not bypassed by an absolute URL spelling of the same request' {
+    It 'translates the absolute URL spelling of the same failing request' {
         $err = {
             InModuleScope PacCopilotKit {
                 Invoke-PckDataverseRequest -Method Patch `
@@ -47,10 +56,10 @@ Describe 'Savedquery guard bypass attempts (war story 1 must hold)' {
             }
         } | Should -Throw -PassThru
         $err.Exception.ExitCode | Should -Be 20
-        Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 0 -Exactly
+        $err.Exception.Message | Should -Match 'story 1'
     }
 
-    It 'is not bypassed by a leading slash on the path' {
+    It 'translates the leading-slash spelling' {
         $err = {
             InModuleScope PacCopilotKit {
                 Invoke-PckDataverseRequest -Method Patch `
@@ -59,10 +68,9 @@ Describe 'Savedquery guard bypass attempts (war story 1 must hold)' {
             }
         } | Should -Throw -PassThru
         $err.Exception.ExitCode | Should -Be 20
-        Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 0 -Exactly
     }
 
-    It 'is not bypassed by delivering fetchxml as a raw JSON string body' {
+    It 'translates when fetchxml arrives as a raw JSON string body' {
         $err = {
             InModuleScope PacCopilotKit {
                 Invoke-PckDataverseRequest -Method Patch `
@@ -71,10 +79,9 @@ Describe 'Savedquery guard bypass attempts (war story 1 must hold)' {
             }
         } | Should -Throw -PassThru
         $err.Exception.ExitCode | Should -Be 20
-        Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 0 -Exactly
     }
 
-    It 'is not bypassed by a query string appended to the single-property route' {
+    It 'translates the single-property route with a query string appended' {
         $err = {
             InModuleScope PacCopilotKit {
                 Invoke-PckDataverseRequest -Method Put `
@@ -83,10 +90,12 @@ Describe 'Savedquery guard bypass attempts (war story 1 must hold)' {
             }
         } | Should -Throw -PassThru
         $err.Exception.ExitCode | Should -Be 20
-        Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 0 -Exactly
     }
 
     It 'still allows the legitimate layoutxml update via absolute URL' {
+        Mock -ModuleName PacCopilotKit Invoke-WebRequest {
+            [pscustomobject]@{ StatusCode = 204; Content = ''; Headers = @{} }
+        }
         InModuleScope PacCopilotKit {
             Invoke-PckDataverseRequest -Method Patch `
                 -Path 'https://unit.test.invalid/api/data/v9.2/savedqueries(aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee)' `

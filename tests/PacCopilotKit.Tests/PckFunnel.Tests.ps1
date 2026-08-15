@@ -109,14 +109,25 @@ Describe 'Invoke-PckDataverseRequest' {
     }
 }
 
-Describe 'Assert-PckSavedQueryFetchXmlRoute (war story 1)' {
+Describe 'Savedquery fetchxml translation (war story 1)' {
+    # Live verification 2026-08-15: the route succeeds on some system views and
+    # fails deterministically on custom-table Quick Finds, so the funnel attempts
+    # the call and translates the known failure signature instead of refusing.
     BeforeEach {
+        # Fabricate the exact Dataverse failure: an HttpResponseException whose
+        # ErrorRecord carries the 0x80040216 error body.
         Mock -ModuleName PacCopilotKit Invoke-WebRequest {
-            [pscustomobject]@{ StatusCode = 204; Content = ''; Headers = @{} }
+            $ex = [Microsoft.PowerShell.Commands.HttpResponseException]::new(
+                'Response status code does not indicate success: 400 (Bad Request).',
+                [System.Net.Http.HttpResponseMessage]::new(400))
+            $er = [System.Management.Automation.ErrorRecord]::new($ex, 'WebCmdletWebResponseException', 'InvalidOperation', $null)
+            $er.ErrorDetails = [System.Management.Automation.ErrorDetails]::new(
+                '{"error":{"code":"0x80040216","message":"An unexpected error occurred."}}')
+            throw $er
         }
     }
 
-    It 'refuses a record PATCH carrying fetchxml, with exit code 20' {
+    It 'attempts the PATCH, then translates 0x80040216 into the war story with exit 20' {
         $err = {
             InModuleScope PacCopilotKit {
                 Invoke-PckDataverseRequest -Method Patch `
@@ -126,10 +137,12 @@ Describe 'Assert-PckSavedQueryFetchXmlRoute (war story 1)' {
         } | Should -Throw -PassThru
         $err.Exception.ExitCode | Should -Be 20
         $err.Exception.Message | Should -Match '0x80040216'
-        Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 0 -Exactly
+        $err.Exception.Message | Should -Match 'story 1'
+        $err.Exception.Message | Should -Match 'solution surgery'
+        Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 1 -Exactly
     }
 
-    It 'refuses a single-property PUT to /fetchxml' {
+    It 'translates the single-property PUT to /fetchxml the same way' {
         $err = {
             InModuleScope PacCopilotKit {
                 Invoke-PckDataverseRequest -Method Put `
@@ -140,7 +153,22 @@ Describe 'Assert-PckSavedQueryFetchXmlRoute (war story 1)' {
         $err.Exception.ExitCode | Should -Be 20
     }
 
-    It 'allows a layoutxml PATCH on the same record (the route that works)' {
+    It 'leaves the same code on an unrelated entity untranslated' {
+        $err = {
+            InModuleScope PacCopilotKit {
+                Invoke-PckDataverseRequest -Method Patch `
+                    -Path 'bots(aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee)' `
+                    -Body @{ fetchxml = 'coincidental-property-name' } -SolutionName 'UnitSolution'
+            }
+        } | Should -Throw -PassThru
+        $err.Exception.ExitCode | Should -Be 1
+        $err.Exception.Message | Should -Match 'Dataverse request failed'
+    }
+
+    It 'lets a successful layoutxml PATCH through untouched' {
+        Mock -ModuleName PacCopilotKit Invoke-WebRequest {
+            [pscustomobject]@{ StatusCode = 204; Content = ''; Headers = @{} }
+        }
         InModuleScope PacCopilotKit {
             Invoke-PckDataverseRequest -Method Patch `
                 -Path 'savedqueries(aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee)' `
@@ -149,11 +177,14 @@ Describe 'Assert-PckSavedQueryFetchXmlRoute (war story 1)' {
         Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 1 -Exactly
     }
 
-    It 'ignores unrelated entities entirely' {
+    It 'even lets a successful fetchxml PATCH through, because system views accept it' {
+        Mock -ModuleName PacCopilotKit Invoke-WebRequest {
+            [pscustomobject]@{ StatusCode = 204; Content = ''; Headers = @{} }
+        }
         InModuleScope PacCopilotKit {
             Invoke-PckDataverseRequest -Method Patch `
-                -Path 'bots(aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee)' `
-                -Body @{ fetchxml = 'coincidental-property-name' } -SolutionName 'UnitSolution'
+                -Path 'savedqueries(aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee)' `
+                -Body @{ fetchxml = '<fetch/>' } -SolutionName 'UnitSolution'
         }
         Should -Invoke -ModuleName PacCopilotKit Invoke-WebRequest -Times 1 -Exactly
     }

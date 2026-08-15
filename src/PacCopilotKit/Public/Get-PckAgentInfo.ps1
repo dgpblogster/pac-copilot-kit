@@ -11,9 +11,10 @@ function Get-PckAgentInfo {
     read rather than construct (design 6.3), and the Harness is what
     Assert-PckAgentHarness gates on.
 
-    The end-user authentication mode is deliberately absent until its storage
-    shape is verified against a live environment (canon 16);
-    Assert-PckAgentAuthMode waits on the same verification.
+    AuthenticationMode is the raw bot.authenticationmode picklist value and
+    AuthenticationModeName its label; both verified live on 2026-08-15 (canon
+    16; war story 3). Only Integrated (2, "Authenticate with Microsoft") can
+    ground on Dataverse knowledge, which Assert-PckAgentAuthMode gates on.
 
     .EXAMPLE
     Get-PckAgentInfo
@@ -31,7 +32,7 @@ function Get-PckAgentInfo {
         [switch] $Json
     )
 
-    $select = '$select=botid,name,schemaname,template'
+    $select = '$select=botid,name,schemaname,template,authenticationmode'
 
     $rows = if ($BotId) {
         @(Invoke-PckDataverseRequest -Method Get -Path "bots($BotId)?$select")
@@ -46,11 +47,13 @@ function Get-PckAgentInfo {
 
     $result = @(foreach ($row in $rows) {
         [pscustomobject]@{
-            BotId      = $row.botid
-            Name       = $row.name
-            SchemaName = $row.schemaname
-            Template   = $row.template
-            Harness    = Get-PckHarnessFromTemplate -Template $row.template
+            BotId                  = $row.botid
+            Name                   = $row.name
+            SchemaName             = $row.schemaname
+            Template               = $row.template
+            Harness                = Get-PckHarnessFromTemplate -Template $row.template
+            AuthenticationMode     = $row.authenticationmode
+            AuthenticationModeName = Get-PckAuthModeName -Value $row.authenticationmode
         }
     })
 

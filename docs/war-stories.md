@@ -8,11 +8,24 @@ Some entries describe undocumented platform behavior, discovered by inspecting w
 
 ---
 
-## Story 1: savedquery fetchxml cannot be updated through the Web API
+## Story 1: savedquery fetchxml updates fail with 0x80040216 on most views
 
-**Symptom.** Updating a saved query's `fetchxml` column returns `0x80040216` on every route: record PATCH and single-property PUT alike. `layoutxml` on the very same record updates fine. Whatever message the maker portal sends when you edit find columns, the Web API `savedquery` update path is not it.
+**Symptom.** Updating a saved query's `fetchxml` column returns `0x80040216`: record PATCH and single-property PUT alike. `layoutxml` on the very same record updates fine. Whatever message the maker portal sends when you edit find columns, the Web API `savedquery` update path is not it.
 
-**Reproduced.** Two separate orgs: one production-grade Dynamics 365 CE org, one freshly provisioned vanilla environment.
+**Reproduced, with a correction.** First reproduced in two orgs (one production-grade Dynamics 365 CE, one freshly provisioned vanilla) where every attempted route failed. A third-org verification pass on 2026-08-15 narrowed the claim: the failure reproduces on most Quick Find views, and a minority accept the very same call.
+
+Verification log, 2026-08-15, one org, same identity, same-value PATCH per view:
+
+| View's table | Kind | TableType | Search-synced | Result |
+|---|---|---|---|---|
+| a custom grounding table | custom | Standard | yes | `0x80040216` |
+| `adx_externalidentity`, `adx_invitation`, `adx_inviteredemption` | custom | Standard | no | `0x80040216` |
+| `applicationuser` | custom | Standard | no | `0x80040216` |
+| `appnotification` | custom | Elastic | no | `0x80040216` |
+| `privilegecheckerrun` | system | Standard | no | succeeded |
+| `aaduser` | custom | Virtual | no | succeeded |
+
+Custom versus system, `SyncToExternalSearchIndex`, and `TableType` were each tested as the discriminator and ruled out. **The discriminator is not yet identified.** Treat any success as a bonus and plan for the failure.
 
 **Why it matters.** Dataverse search indexes the columns configured as find columns on a table's Quick Find view, and a fresh custom table's Quick Find view carries exactly one, the primary name. Every other column is invisible to search, and therefore to a Copilot Studio agent grounding on the table, until the view's `fetchxml` changes. This is the difference between "source attached" and "agent grounded."
 
@@ -20,9 +33,9 @@ Some entries describe undocumented platform behavior, discovered by inspecting w
 - Solution surgery: export the solution, edit the savedquery block in `customizations.xml`, re-zip, import. Automates cleanly.
 - The maker portal: Tables, your table, Views, open the Quick Find view, Edit find table columns, Save and publish.
 
-**Guard.** `Assert-PckSavedQueryFetchXmlRoute`, a request-construction guard in the Web API funnel. It refuses the call before any network traffic (exit code 20) and names both working alternatives. There is no translated call: attempting the documented-to-fail route on the caller's behalf would just spend their API quota on a known outcome.
+**Guard.** `Convert-PckSavedQueryFetchXmlError`, a response translator in the Web API funnel. Because a minority of views accept the call, refusing at construction would block working requests; the funnel attempts the call and, when the `0x80040216` signature comes back on a savedquery fetchxml route, throws the war story (exit code 20) with both working alternatives instead of an opaque code. This replaced an earlier construction-refusal guard the same day the third-org evidence landed, which is exactly the correction loop this file exists for.
 
-**Tests.** Unit: the guard refuses record PATCH and single-property PUT carrying `fetchxml`, allows `layoutxml` on the same record, and ignores unrelated entities. Integration (tagged, live environment): proves the raw untranslated PATCH still fails with `0x80040216`, writing the existing value back so even an unexpected success would alter nothing. If that test ever reports the PATCH succeeding, the platform changed and this story needs re-verification.
+**Tests.** Unit: the translator enriches record PATCH and single-property PUT failures in every spelling (absolute URL, leading slash, raw JSON string body, query-string suffix), leaves the same code on unrelated entities untranslated, and lets successful fetchxml and layoutxml updates through. Integration (tagged, live environment): probes several custom-table Quick Finds with same-value PATCHes and asserts the translation contract on the first real failure; if every probed view accepts the call, the test skips loudly saying this story needs re-verification (canon 16).
 
 ## Story 2: the newer agent experience displays knowledge sources it never queries
 
@@ -37,3 +50,25 @@ Some entries describe undocumented platform behavior, discovered by inspecting w
 **Guard.** `Assert-PckAgentHarness`, a preflight guard (exit code 14). Standard passes; the newer experience is refused with the failure mode spelled out; unrecognized templates are refused too, because the failure this guard prevents is silent and unrecognized is unsafe. `Get-PckAgentInfo` exposes the same classification as data.
 
 **Tests.** Unit: classification of `default-*`, `cliagent-*`, and unknown templates; refusal messages and exit codes. Integration (tagged): classifies every agent in the live environment.
+
+## Story 3: only Integrated end-user authentication grounds on Dataverse knowledge
+
+**Symptom.** Dataverse knowledge sources attached to an agent whose end-user authentication is anything other than "Authenticate with Microsoft" display normally and are never searched. Documented by Microsoft, silent at runtime, and easy to miss because the attachment itself succeeds.
+
+**Storage shape, verified live 2026-08-15.** `bot.authenticationmode` is a picklist: 0 Unspecified, 1 None, 2 Integrated ("Authenticate with Microsoft"), 3 Custom Entra ID, 4 Generic OAuth2. Only 2 grounds.
+
+**Guard.** `Assert-PckAgentAuthMode`, a preflight guard (exit code 18). Mode 2 passes; every other verified mode is refused with the failure mode spelled out; unparseable values are refused rather than passed, because the failure this guard prevents is silent. `Get-PckAgentInfo` exposes both the raw value and its label.
+
+**Tests.** Unit: pass on 2, refusal on 0, 1, 3, 4, unparseable values, and objects with no mode property. Integration: the mode is read live for every agent via `Get-PckAgentInfo`.
+
+## Story 4: savedquery.returnedtypecode filters only as a quoted logical name
+
+**Symptom.** `savedquery.returnedtypecode` serializes in responses as the entity's logical name (a string), but it is an EntityName attribute stored as an integer, and the two spellings a reasonable person would try both fail:
+
+- `startswith(returnedtypecode,'wrk_')` fails with `0x80040203`, expected type Int32.
+- `returnedtypecode eq 10635` (the object type code, unquoted) fails with `0x80060888`, incompatible Edm.String and Edm.Int32.
+- `returnedtypecode eq '10635'` (quoted) fails with `0x80041102`, entity not found in the metadata cache.
+
+**What works.** `returnedtypecode eq 'wrk_caseresolution'`: the logical name, quoted. Discovered 2026-08-15 while building the story 1 verification pass.
+
+**Guard.** None yet. Recorded as inventory; a guard becomes worthwhile when the kit grows a helper that filters saved queries by table.

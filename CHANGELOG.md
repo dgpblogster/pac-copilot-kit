@@ -18,6 +18,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 - `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
 - `tests/PacCopilotKit.Tests/PckAdversarial.Tests.ps1`: 13 adversarial tests written red-first against the walking skeleton; 7 landed as real defects, fixed below. Suite total 44 unit tests, all passing.
 
+### Added (first live run, 2026-08-15)
+- `Get-PckAgentInfo` now returns `AuthenticationMode` and `AuthenticationModeName`; `bot.authenticationmode` picklist verified live (0 Unspecified, 1 None, 2 Integrated, 3 Custom Entra ID, 4 Generic OAuth2).
+- `Assert-PckAgentAuthMode` preflight guard (exit 18): only Integrated grounds on Dataverse knowledge. War story 3.
+- Response-translator tier in the funnel (`$script:PckResponseTranslators`); first translator `Convert-PckSavedQueryFetchXmlError`.
+- War story 4: `savedquery.returnedtypecode` filters only as a quoted logical name. Inventory, no guard yet.
+- Live integration results: auth chain, discovery, WhoAmI, and harness classification passed first try against a real tenant with both harnesses present.
+
+### Changed (war story 1 correction, 2026-08-15)
+- Savedquery fetchxml guard redesigned from construction-refusal to attempt-and-translate after third-org live verification showed the failure is broad but not universal (minority of views accept the call; discriminator unidentified after ruling out sync flag, custom/system, and TableType). `Assert-PckSavedQueryFetchXmlRoute` removed; `Convert-PckSavedQueryFetchXmlError` added. Unit, adversarial, and integration suites reworked to assert the translation contract; the integration test now skips loudly if the story ever stops reproducing.
+
 ### Changed (README)
 - `README.md` gains an end-to-end loop example interleaving `pac` and kit commands, with a pac/kit division-of-labor table and an explicit shipped-today versus planned-for-v0.1 line.
 

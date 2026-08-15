@@ -31,36 +31,61 @@ Describe 'Live environment' -Tag 'Integration' {
         }
     }
 
-    # Canon 6, applied to a guard with no translated call (design 6.4): the test
-    # proves the untranslated call fails with the documented signature. The PATCH
-    # deliberately bypasses the funnel and writes the fetchxml value back unchanged,
-    # so even in the undocumented event that it succeeds, the record is unaltered.
-    # If this test ever reports success on the PATCH, the platform shape changed
-    # and war story 1 needs re-verification (canon 16).
-    It 'proves the raw savedquery fetchxml PATCH fails with 0x80040216' -Skip:(-not $env:PCK_DEFAULT_ENVIRONMENT_ID) {
+    # War story 1, as narrowed by live verification on 2026-08-15: the fetchxml
+    # update fails with 0x80040216 on most Quick Find views while a minority
+    # accept the same call, and the discriminator is not yet identified. This
+    # test therefore probes several custom-table Quick Finds and asserts the
+    # translation contract on the first failure it finds. Every PATCH writes the
+    # existing fetchxml back unchanged, so successes alter nothing that matters.
+    # If every probed view accepts the call, the story needs re-verification
+    # (canon 16) and the test says so by skipping loudly.
+    It 'translates the Quick Find fetchxml failure wherever it reproduces' -Skip:(-not $env:PCK_DEFAULT_ENVIRONMENT_ID) {
         Connect-PckPowerPlatform | Out-Null
 
         $ctx = InModuleScope PacCopilotKit { $script:PckContext }
         $headers = InModuleScope PacCopilotKit { Get-PckAuthHeaders }
 
-        $view = (Invoke-RestMethod -Method Get -Headers $headers -Uri (
-            "$($ctx.EnvironmentUrl)/api/data/v9.2/savedqueries?`$select=savedqueryid,fetchxml&`$filter=querytype eq 4&`$top=1"
-        )).value | Select-Object -First 1
-        $view | Should -Not -BeNullOrEmpty
+        # Note the returnedtypecode filter quirk (war story 4): the attribute
+        # serializes as the entity's logical name and filters only as a quoted
+        # logical name.
+        $customTables = @((Invoke-RestMethod -Method Get -Headers $headers -Uri (
+            "$($ctx.EnvironmentUrl)/api/data/v9.2/EntityDefinitions?`$select=LogicalName&`$filter=IsCustomEntity eq true"
+        )).value)
 
-        $failed = $false
-        $errorBody = ''
-        try {
-            Invoke-RestMethod -Method Patch -Headers $headers -ContentType 'application/json' `
-                -Uri "$($ctx.EnvironmentUrl)/api/data/v9.2/savedqueries($($view.savedqueryid))" `
-                -Body (@{ fetchxml = $view.fetchxml } | ConvertTo-Json)
-        }
-        catch {
-            $failed = $true
-            $errorBody = [string]$_.ErrorDetails.Message
+        $tried = 0
+        $translationError = $null
+        foreach ($table in $customTables) {
+            if ($tried -ge 5) { break }
+            $view = @((Invoke-RestMethod -Method Get -Headers $headers -Uri (
+                "$($ctx.EnvironmentUrl)/api/data/v9.2/savedqueries?`$select=savedqueryid,fetchxml&`$filter=querytype eq 4 and returnedtypecode eq '$($table.LogicalName)'"
+            )).value) | Select-Object -First 1
+            if (-not $view) { continue }
+            $tried++
+            try {
+                InModuleScope PacCopilotKit -Parameters @{ id = $view.savedqueryid; fx = $view.fetchxml } {
+                    param($id, $fx)
+                    Invoke-PckDataverseRequest -Method Patch `
+                        -Path "savedqueries($id)" `
+                        -Body @{ fetchxml = $fx } -NoSolution
+                } | Out-Null
+            }
+            catch {
+                $translationError = $_
+                break
+            }
         }
 
-        $failed | Should -BeTrue -Because 'war story 1 documents that no Web API route can update savedquery fetchxml'
-        $errorBody | Should -Match '0x80040216'
+        if ($tried -eq 0) {
+            Set-ItResult -Skipped -Because 'no custom table with a Quick Find view exists in this environment'
+            return
+        }
+        if (-not $translationError) {
+            Set-ItResult -Skipped -Because "all $tried probed Quick Find views accepted the fetchxml PATCH; war story 1 needs re-verification (canon 16)"
+            return
+        }
+
+        $translationError.Exception.ExitCode | Should -Be 20
+        $translationError.Exception.Message | Should -Match '0x80040216'
+        $translationError.Exception.Message | Should -Match 'story 1'
     }
 }

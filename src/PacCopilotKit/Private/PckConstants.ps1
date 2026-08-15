@@ -13,6 +13,7 @@ $script:PckExitCode = @{
     NotConnected            = 15
     EnvironmentUrlInvalid   = 16
     WorkspaceRootUnset      = 17
+    AgentAuthModeUnsupported = 18
     KnownBrokenRoute        = 20
 }
 
@@ -25,6 +26,14 @@ $script:PckToken   = $null
 
 # Request-construction guards the funnel runs before any network call (design 6.2).
 # Each entry is a function under Private/Guards that throws to refuse the request.
-$script:PckRequestConstructionGuards = @(
-    'Assert-PckSavedQueryFetchXmlRoute'
+# Empty since 2026-08-15: the savedquery guard moved to the translator tier after
+# live verification showed the route succeeds on some system views.
+$script:PckRequestConstructionGuards = @()
+
+# Response translators the funnel consults when a request fails (design 6.2).
+# Each is a function under Private/Guards receiving the normalized request plus
+# the Dataverse error code and message; the first to return a non-null string
+# supplies the enriched error, thrown with the KnownBrokenRoute exit code.
+$script:PckResponseTranslators = @(
+    'Convert-PckSavedQueryFetchXmlError'
 )
