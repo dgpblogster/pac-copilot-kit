@@ -29,6 +29,81 @@ Two components, one engine.
 
 Everything user-facing lives in the module. The MCP layer is contract translation only.
 
+## The loop, end to end
+
+The kit does not replace `pac`; it fills in around it. `pac` owns authoring, packing, and the solution lifecycle. The kit owns environment discipline, preflight, the knowledge wiring `pac` cannot do, readiness, and backup. One full pass from empty folder to grounded agent:
+
+```powershell
+# ── 0. Tooling floor, once per machine ─────────────────────────────────────────
+pac --version                        # 2.10.1 or later
+$PSVersionTable.PSVersion            # 7.4 or later
+
+# ── 1. Author locally (pac owns this) ──────────────────────────────────────────
+pac copilot init                     # scaffold; creates nothing in Dataverse
+# edit agent.mcs.yml, settings.mcs.yml, topics/*.mcs.yml
+# schema-check every .mcs.yml offline before anything is packed; a Power Fx
+# string containing ": " parses wrong and surfaces as runtime behavior, not
+# as an error
+
+# ── 2. Pin the environment, once per shell ─────────────────────────────────────
+# The kit never trusts the pac auth profile default org; the id is always
+# explicit. pac gets its own auth for its own commands.
+$env:PCK_DEFAULT_ENVIRONMENT_ID = '00000000-0000-0000-0000-000000000000'
+pac auth create --environment $env:PCK_DEFAULT_ENVIRONMENT_ID
+
+# ── 3. Connect and preflight (kit) ─────────────────────────────────────────────
+# Token comes from the signed-in Azure CLI (az login), PCK_ACCESS_TOKEN, or
+# Az.Accounts; never from pac state. In CI, set PCK_SPN_TENANT, PCK_SPN_APP_ID,
+# and PCK_SPN_SECRET and the same two lines work unchanged.
+Import-Module PacCopilotKit
+Connect-PckPowerPlatform             # discovery, WhoAmI verification, cached context
+
+# Confirm the agent is the standard harness BEFORE wiring knowledge. The newer
+# experience displays knowledge sources it never queries, with no error anywhere.
+Get-PckAgentInfo -Name 'WorkbenchSupportAssistant*'
+# BotId      : ...
+# SchemaName : wrk_WorkbenchSupportAssistant
+# Template   : default-2.1.0
+# Harness    : Standard                       <- proceed only on this
+
+# ── 4. Pack and import (pac owns this) ─────────────────────────────────────────
+pac copilot pack --publisher-prefix wrk --solution-name WorkbenchSupportAssistant
+pac solution import --path .\WorkbenchSupportAssistant.zip --publish-changes
+
+# ── 5. Wire the Dataverse knowledge source (kit; the step pac cannot do) ───────
+# Planned, v0.1 in progress. Creates the table (search-enabled at create time),
+# the table search config, the knowledge component, and the association, every
+# call inside the solution, then polls the search query endpoint (never /status)
+# until seeded rows are actually searchable.
+New-PckKnowledgeSource -SolutionName WorkbenchSupportAssistant `
+    -TableSchemaName wrk_caseresolution -BotName WorkbenchSupportAssistant
+Wait-PckDataverseSearchReady -Table wrk_caseresolution
+
+# ── 6. Backup and commit (kit + git) ───────────────────────────────────────────
+# Planned, v0.1 in progress. The export is a backup; the repository is the agent.
+Export-PckSolutionBackup -SolutionName WorkbenchSupportAssistant -Path .\backups
+git add . ; git commit -m "Milestone: agent deployed and grounded"
+```
+
+Or, once `Invoke-PckCopilotPipeline` lands, steps 3 through 5 collapse into one call that runs the same sequence with every guard in front of it:
+
+```powershell
+Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant -SourcePath .\agent -Json
+```
+
+**Shipped today:** `Connect-PckPowerPlatform`, `Get-PckAgentInfo`, the Web API funnel with its guards, and the token chain. **Planned for v0.1:** `New-PckKnowledgeSource`, `Wait-PckDataverseSearchReady`, `Enable-PckDataverseSearch`, `Invoke-PckCopilotPipeline`, `Export-PckSolutionBackup`, and the MCP server. The division of labor above does not change as those land; only the amount of it that is automated does.
+
+| Step | Owner | Why |
+|---|---|---|
+| Author topics and settings as YAML | `pac copilot init` + editor | Supported, documented, works |
+| Validate YAML offline | your schema check, before pack | The import will not catch what parses wrong |
+| Pack and import the solution | `pac copilot pack` + `pac solution import` | Supported, documented, works |
+| Pin the environment, verify identity | kit | The pac profile is machine-global and drifts |
+| Gate on harness and auth mode | kit | The failure modes are silent |
+| Create Dataverse knowledge sources | kit | No `pac` path exists at all |
+| Wait for real search readiness | kit | The status endpoint lies; only queries tell the truth |
+| Back up the solution | kit | One call, timestamped, explicitly not the source of truth |
+
 ## Requirements
 
 - PowerShell 7.4 or later
