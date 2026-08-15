@@ -8,7 +8,10 @@
     PowerShellVersion = '7.4'
     FunctionsToExport = @(
         'Connect-PckPowerPlatform'
+        'Enable-PckDataverseSearch'
+        'Export-PckSolutionBackup'
         'Get-PckAgentInfo'
+        'Wait-PckDataverseSearchReady'
     )
     CmdletsToExport   = @()
     VariablesToExport = @()

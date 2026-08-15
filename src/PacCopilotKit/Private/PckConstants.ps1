@@ -12,6 +12,7 @@ $script:PckExitCode = @{
     HarnessUnsupported      = 14
     NotConnected            = 15
     EnvironmentUrlInvalid   = 16
+    WorkspaceRootUnset      = 17
     KnownBrokenRoute        = 20
 }
 
