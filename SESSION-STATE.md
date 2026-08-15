@@ -46,26 +46,34 @@ The design was reconciled against the two private source articles, the Dataverse
 - **The claim to make is "prescribed but not automatable", never "no ALM story."** Microsoft's guidance exists and is sound; the road does not. The weaker claim loses an argument the moment someone links the golden-rules page.
 - **Three statements in the first design pass were wrong** and are corrected: the `savedquery` guard (no Web API route works at all), the botcomponent attachment relationship (`parentbotid`, not the `bot_botcomponent` N:N), and the Web API token source (never specified, and the obvious answer conflicts with what the POC proved).
 
+### Closed on 2026-08-15 (the two structural ones)
+
+- **§12.8, Web API token source: settled.** The funnel acquires its own token and never depends on `pac` state. This was settled by verification, not preference: no `pac` command emits a bearer token (the whole `pac auth` surface is `clear`, `create`, `delete`, `list`, `name`, `select`, `update`, `who`), and the VS Code extension's Auth Panel is a GUI over the same machine-global profiles, so it neither avoids the drift nor supplies a token. **One code path for every developer, no editor-conditional behavior.** CI uses SPN client credentials against the Entra token endpoint with scope `{org}/.default`, which needs no extra dependency at all. Dev resolves in order: `PCK_ACCESS_TOKEN`, then `az account get-access-token`, then `Get-AzAccessToken` from `Az.Accounts`, then a hard error naming all three. `az` is an accepted path, never a prerequisite.
+- **§12.9, v0.1 scope: grows to include pillar A.** See design §12.9 for the cmdlet list.
+
 ### Still open (blocks scaffolding — need owner sign-off before code)
 
-Eight items in design doc §12. Owner defaults are noted in each. Ask explicitly per item or accept all with "defaults". The last three are new and two of them are structural, so they matter more than the older five.
+Six items in design doc §12. Owner defaults are noted in each. All six can be answered with "defaults" in one line; none is structural.
 
 | # | Question | Default proposed |
 |---|---|---|
-| §12.2 | Public PS API cmdlet names (§7) — sign off as-is or revise? Note §7 grew substantially in this revision. | Sign off as-is |
+| §12.2 | Public PS API cmdlet names (§7) — sign off as-is or revise? §7 grew substantially in the 2026-08-14 revision, so this is worth an actual read. | Sign off as-is |
 | §12.4 | PowerShell floor 7.4+ (rules out 5.1)? | Yes |
 | §12.5 | Node floor 20 LTS for MCP server? | Yes |
 | §12.6 | PS Gallery publish path — manual for v0.1, or automated release workflow immediately? | Manual for v0.1 |
 | §12.7 | War-stories sanitization ownership — this repo owns sanitized `docs/war-stories.md`; blog references it? | Yes |
-| **§12.8** | **Web API token source.** `az`-independent-of-`pac` (POC's proven approach), reuse the `pac` profile token, or both with the first as default? **Blocks the funnel both pillars run through.** | (a), independent of `pac` |
-| **§12.9** | **v0.1 rescope.** Does v0.1 grow to include pillar A, or does pillar A wait? The signed-off v0.1 is pillar B only. | Grow it |
 | §12.10 | MCP verb for pillar A. Add a seventh verb (`add-knowledge-source`), which amends canon 11, or reach pillar A only through `run-pipeline`? | Add it |
 
 ## 4. Next action
 
-1. Get sign-off on the §12 items above. Take §12.8 and §12.9 first: they are structural, and the rest can be answered with "defaults" in one line.
-2. Scaffold the repo skeleton per design doc §11: `src/PacCopilotKit/{Public,Private/Guards,en-US}/`, `src/pac-copilot-kit-mcp/src/`, `tests/`, `ci/`, `samples/`, `LICENSE` (MIT), `README.md` stub.
-3. Write the first cmdlet stub: `Connect-PckPowerPlatform`. Proves the dev-mode auth path and preflight guards end to end against the sandbox used in the source POC (env id in owner's shell only, never checked in — canon 13).
+**Done 2026-08-15:** `git init` on `main`, first commit, with `LICENSE` (MIT), `README.md`, and `.gitignore`. Repo-local git identity set to the owner's GitHub noreply address so the real address stays out of public history. **No GitHub remote yet.**
+
+1. **Walking skeleton, the next real work.** `Connect-PckPowerPlatform` + `Invoke-PckDataverseRequest` + `Get-PckAgentInfo` + `Assert-PckAgentHarness` + a Pester test. `Get-PckAgentInfo` is the deliberate first cmdlet rather than the pipeline: it is read-only, safe against a live environment, a preflight dependency for all of pillar A, and in roughly fifty lines it forces auth, the funnel, `-Json` output, exit codes, and the first guard to become real. Repo skeleton per design §11 gets created as this lands, not as a separate empty-folder step.
+2. **The `savedquery` refusal test.** Locks canon 6's authoring contract using the one guard that has no translated call, so the "guard that refuses" shape is proven before any second guard exists.
+3. **`New-PckKnowledgeSource`.** The headline pillar A cmdlet, once the funnel and guards underneath it are trusted.
+4. **Create the GitHub remote and push.** Owner action; needs the repo created at `dgpblogster/pac-copilot-kit`.
+
+Integration testing needs a real environment. Its id goes in the owner's shell via `PCK_DEFAULT_ENVIRONMENT_ID` and is never checked in (canon 13).
 4. Write the first Pester test for a war-story guard: the `savedquery` PATCH `0x80040216` case. Locks the guard-authoring contract (canon 6) with a real example before any second guard exists.
 
 Do not scaffold code before step 1 is answered. The owner's pattern is ask-then-implement for structural decisions; "OK on scope" earlier in the session was not blanket approval to start writing PowerShell.
