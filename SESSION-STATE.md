@@ -66,12 +66,11 @@ Six items in design doc §12. Owner defaults are noted in each. All six can be a
 
 ## 4. Next action
 
-**Done 2026-08-15:** `git init` on `main`, first commit, with `LICENSE` (MIT), `README.md`, and `.gitignore`. Repo-local git identity set to the owner's GitHub noreply address so the real address stays out of public history. **No GitHub remote yet.**
+**Done 2026-08-15:** `git init` on `main`, first commit, with `LICENSE` (MIT), `README.md`, and `.gitignore`. Repo-local git identity set to the owner's GitHub noreply address so the real address stays out of public history. Public repo created at `https://github.com/dgpblogster/pac-copilot-kit` and pushed; `main` tracks `origin/main`. **The repo is live and public: everything committed ships immediately (canon 13 applies at commit time, not release time).**
 
 1. **Walking skeleton, the next real work.** `Connect-PckPowerPlatform` + `Invoke-PckDataverseRequest` + `Get-PckAgentInfo` + `Assert-PckAgentHarness` + a Pester test. `Get-PckAgentInfo` is the deliberate first cmdlet rather than the pipeline: it is read-only, safe against a live environment, a preflight dependency for all of pillar A, and in roughly fifty lines it forces auth, the funnel, `-Json` output, exit codes, and the first guard to become real. Repo skeleton per design §11 gets created as this lands, not as a separate empty-folder step.
 2. **The `savedquery` refusal test.** Locks canon 6's authoring contract using the one guard that has no translated call, so the "guard that refuses" shape is proven before any second guard exists.
 3. **`New-PckKnowledgeSource`.** The headline pillar A cmdlet, once the funnel and guards underneath it are trusted.
-4. **Create the GitHub remote and push.** Owner action; needs the repo created at `dgpblogster/pac-copilot-kit`.
 
 Integration testing needs a real environment. Its id goes in the owner's shell via `PCK_DEFAULT_ENVIRONMENT_ID` and is never checked in (canon 13).
 4. Write the first Pester test for a war-story guard: the `savedquery` PATCH `0x80040216` case. Locks the guard-authoring contract (canon 6) with a real example before any second guard exists.
