@@ -474,3 +474,4 @@ Written out so scope creep gets caught early.
 | 2026-08-15 | §12.8 closed: the Web API funnel acquires its own token and never depends on `pac` state. No `pac` command emits a token, and the VS Code extension is a GUI over the same machine-global profiles, so there is one code path for every developer | User, after verification against the `pac auth` reference |
 | 2026-08-15 | §12.9 closed: v0.1 grows to include pillar A | User |
 | 2026-08-15 | `SESSION-STATE.md` sanitized and kept tracked, rather than gitignored | User |
+| 2026-08-15 | Repo created public, then flipped private the same day: the design doc condenses two unpublished articles, and the repo should not front-run their debut. Public again when both publish. Canon 13 discipline unchanged while private | User |
