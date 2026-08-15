@@ -30,7 +30,7 @@ Four files, four jobs. Do not conflate them.
 | Public home | https://github.com/dgpblogster/pac-copilot-kit *(created; private until the two source articles publish, then public)* |
 | License | MIT |
 | Owner | Mariano Gomez Bent |
-| Status | design revised 2026-08-14 after reconciliation against the source articles; scaffolding pending §12.2, §12.4 through §12.10 in the design doc |
+| Status | all §12 design questions closed 2026-08-15; v0.1 build in progress |
 
 ## Canons (settled decisions — do not re-litigate without owner say-so)
 
@@ -44,7 +44,7 @@ Four files, four jobs. Do not conflate them.
 8. **Structured output + non-zero exits.** Every public cmdlet accepts `-Json` and writes one well-formed object to stdout; human output goes to stderr / host. Failures produce non-zero exit codes so CI can trust them.
 9. **Distinct exit code range for preflight vs operational failure.** `10..19` = preflight guard tripped (environment misconfigured). Everything else = operation failed. Keeps CI diagnostics unambiguous.
 10. **MCP over stdio only in v0.1.** Codex CLI is stdio-only; stdio is the lowest common denominator that keeps all three clients on one server binary. HTTP/SSE deferred; add it later as a second transport behind a flag, same tool handlers.
-11. **MCP surface is task-shaped, not cmdlet-mirrored.** Six verbs in §8.3 of the design doc, locked. AI agents pick better from six well-labeled verbs than thirty look-alike ones.
+11. **MCP surface is task-shaped, not cmdlet-mirrored.** *(amended 2026-08-15)* Seven verbs in §8.3 of the design doc, locked: the original six plus `add-knowledge-source`, so pillar A has a labeled verb. AI agents pick better from seven well-labeled verbs than thirty look-alike ones.
 12. ~~**Folder rename to `pac-copilot-kit` is deferred to repo creation**~~ *(superseded 2026-08-14)*. The rename happened ahead of `git init` rather than with it. The workspace is `C:\AL\pac-copilot-kit` and is **not yet a git repository**. The pairing this canon required is moot; what remains is `git init` plus the GitHub remote.
 13. **Public / open source from day one.** MIT license. No POC-tenant details, no customer names, no environment ids, no bot ids in shipped code, samples, or docs. This applies to `SESSION-STATE.md` and the design doc too, since both ship. The `docs/war-stories.md` file is the sanitized version; the source blog drafts are the private working copy and are not pathed in any tracked file.
 14. **The claim is "prescribed but not automatable," never "there is no ALM story"** (added 2026-08-14). Microsoft's Copilot Studio ALM guidance exists, is sound, and has not wavered. What is missing is the road: no agent task in Power Platform Build Tools, no agent-aware GitHub Action, no reference pipeline, a portal click in the middle, and a component type with no code path. The precise claim is defensible and survives Microsoft shipping a first-party agent task later. The overstated one loses the argument the moment somebody links the golden-rules page.
@@ -64,5 +64,5 @@ Four files, four jobs. Do not conflate them.
 - Design decisions land in the design doc's decision log (bottom of file), in reverse-chronological order, dated absolute.
 - Canons are numbered and stable. Amend by editing in place with a `(amended YYYY-MM-DD)` marker; do not renumber.
 - Cmdlets are `Verb-Pck<Noun>`; env vars are `PCK_<UPPER_SNAKE>`; MCP verbs are `kebab-case` and phrased as tasks, not APIs.
-- PowerShell floor: 7.4+ (proposed, awaiting sign-off in §12.4). Node floor for MCP server: 20 LTS (proposed, §12.5).
+- PowerShell floor: 7.4+. Node floor for MCP server: 20 LTS. (Both signed off 2026-08-15.)
 - No em dashes in shipped docs and samples (owner style rule inherited from the source project).

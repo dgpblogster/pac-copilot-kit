@@ -236,7 +236,7 @@ Any failure returns a clear error in the MCP `initialize` response and exits non
 
 ### 8.3 Verb set (small, task-shaped, not cmdlet-mirrored)
 
-The MCP surface is deliberately narrower than the cmdlet surface. AI agents pick better from six well-labeled verbs than thirty look-alike ones.
+The MCP surface is deliberately narrower than the cmdlet surface. AI agents pick better from seven well-labeled verbs than thirty look-alike ones. *(Amended 2026-08-15: `add-knowledge-source` added as the seventh verb per §12.10, so pillar A has a labeled verb rather than reaching AI clients only through `run-pipeline`.)*
 
 | MCP tool | Wraps | What the agent asks for |
 |---|---|---|
@@ -244,12 +244,13 @@ The MCP surface is deliberately narrower than the cmdlet surface. AI agents pick
 | `run-pipeline` | `Invoke-PckCopilotPipeline` | Full deploy loop against the pinned environment. |
 | `backup-solution` | `Export-PckSolutionBackup` | One-call solution export to disk. |
 | `pull-agent` | `Sync-PckCopilotAgent` | Pull the live agent YAML into the workspace, guard-checked. |
+| `add-knowledge-source` | `New-PckKnowledgeSource` | Wire a Dataverse knowledge source into the agent: preflight, create the four records in-solution, verify. The pillar A verb. |
 | `wait-for-search` | `Wait-PckDataverseSearchReady` | Block until knowledge grounding is live after seeding. |
 | `explain-failure` | Local reasoner over the last cmdlet's structured error output | Turn a war-story exit code into a plain-English "here is what happened and how to fix it" reply, without another Dataverse round-trip. |
 
 `explain-failure` is the differentiator. It turns the guard funnel's structured errors into agent-consumable prose, and it is the one MCP tool with no PS cmdlet on the other side.
 
-**Gap flagged 2026-08-14.** This set was locked before §1 named the two pillars, and it is entirely pillar B apart from `wait-for-search`. Pillar A's headline capability, creating a grounded Dataverse knowledge source, has no verb. Since the six are a canon, this is raised as open question §12.10 rather than changed here.
+The gap flagged on 2026-08-14 (no pillar A verb) closed on 2026-08-15 with `add-knowledge-source`; see §12.10.
 
 ### 8.4 Server ↔ engine bridge
 
@@ -413,12 +414,12 @@ pac-copilot-kit/
 The design conversation left these deliberately unresolved. Sign-off needed before code.
 
 1. ~~**v0.1 scope.**~~ **Signed off 2026-08-14, then reopened the same day. See §12.9.** Original: `Invoke-PckCopilotPipeline` + `Export-PckSolutionBackup` + war-stories guards in `Invoke-PckDataverseRequest` + MCP shim from day one. That set is entirely pillar B plus a backup helper; it omits pillar A, which §1 now identifies as the reason anyone installs the kit.
-2. **Public PS API sign-off.** Cmdlet names in §7 are proposals. Any renames before Pester scaffolds get built against them.
+2. ~~**Public PS API sign-off.**~~ **Signed off 2026-08-15** as proposed in §7. The `Pck` prefix was re-examined against a `Pac` prefix and kept: `Pac` invites collision with any future first-party module and reads as Microsoft's own, which a kit built partly on unsupported record shapes must not. Aliases in the `Pac` spelling were considered and declined for the same reason.
 3. ~~**MCP verb set sign-off.**~~ **Signed off 2026-08-14.** §8.3 verbs locked (`plan-deployment`, `run-pipeline`, `backup-solution`, `pull-agent`, `wait-for-search`, `explain-failure`).
-4. **PowerShell floor.** Design assumes 7.4+. Confirm we do not need Windows PowerShell 5.1 (would ban several language features and force `Invoke-WebRequest` instead of `Invoke-RestMethod` in some paths).
-5. **Node floor for the MCP server.** Design assumes Node 20 LTS. `npx -y` works on 18+ but 20 is the current LTS and the target the MCP SDK bumps to.
-6. **PowerShell Gallery publish path.** Manual for v0.1, or set up the release workflow immediately? Manual is faster to first release; automated is closer to the ALM story the kit is preaching.
-7. **Sanitization pass on war-stories.** The inventory in the blog draft references POC-specific details. The `docs/war-stories.md` in this repo is the sanitized version. Who owns the diff between the two: this repo, the blog repo, or both?
+4. ~~**PowerShell floor.**~~ **Signed off 2026-08-15:** 7.4 and later. Windows PowerShell 5.1 is out.
+5. ~~**Node floor for the MCP server.**~~ **Signed off 2026-08-15:** Node 20 LTS.
+6. ~~**PowerShell Gallery publish path.**~~ **Signed off 2026-08-15:** manual for v0.1.
+7. ~~**Sanitization pass on war-stories.**~~ **Signed off 2026-08-15:** this repo owns the sanitized `docs/war-stories.md`; the blog references it.
 8. ~~**Web API token source.**~~ **Signed off 2026-08-15.** The funnel acquires its own token and never depends on `pac` state. Two facts settled it rather than preference:
 
    - **No `pac` command emits a bearer token.** The full `pac auth` surface is `clear`, `create`, `delete`, `list`, `name`, `select`, `update`, `who`. Reusing the profile's token is not implementable through supported surface.
@@ -433,7 +434,7 @@ The design conversation left these deliberately unresolved. Sign-off needed befo
 
    The chain makes `az` an accepted path rather than a prerequisite. `Connect-PckPowerPlatform` still governs `pac` invocations; this decision covers the Web API funnel only, and the two remain deliberately independent.
 9. ~~**v0.1 rescope.**~~ **Signed off 2026-08-15: v0.1 grows to cover pillar A.** Scope is `New-PckKnowledgeSource` + `Wait-PckDataverseSearchReady` + `Enable-PckDataverseSearch` + `Get-PckAgentInfo` + `Invoke-PckCopilotPipeline` + `Export-PckSolutionBackup` + the guards in `Invoke-PckDataverseRequest` + the MCP shim. Rationale: shipping pillar B alone produces a competent tool with no reason to exist, since `pac` in a script step already does most of pillar B for anyone willing to write the script.
-10. **MCP verb for pillar A (new, 2026-08-14).** The six verbs in §8.3 are a canon and were locked before the pillars were named. Five of the six are pillar B. Does a seventh verb get added for creating a grounded knowledge source (`add-knowledge-source`), or does pillar A reach AI clients only through `run-pipeline`? Adding one amends canon 11, so it needs an explicit decision rather than a quiet edit. Proposed: add it, on the grounds that the capability nobody else has is the one an AI pair most needs a labeled verb for.
+10. ~~**MCP verb for pillar A.**~~ **Signed off 2026-08-15:** `add-knowledge-source` added as the seventh verb. Canon 11 amended from six verbs to seven. Rationale: the capability nobody else has is the one an AI pair most needs a labeled verb for.
 
 ## 13. Non-goals
 
@@ -475,3 +476,5 @@ Written out so scope creep gets caught early.
 | 2026-08-15 | §12.9 closed: v0.1 grows to include pillar A | User |
 | 2026-08-15 | `SESSION-STATE.md` sanitized and kept tracked, rather than gitignored | User |
 | 2026-08-15 | Repo created public, then flipped private the same day: the design doc condenses two unpublished articles, and the repo should not front-run their debut. Public again when both publish. Canon 13 discipline unchanged while private | User |
+| 2026-08-15 | All remaining §12 items closed: §7 names as proposed with the `Pck` prefix kept after a `Pac`-prefix challenge, PowerShell 7.4+, Node 20 LTS, manual Gallery publish for v0.1, war-stories owned here, seventh MCP verb `add-knowledge-source` added (canon 11 amended) | User ("let's build") |
+| 2026-08-15 | `Test-PckCopilotAgent` stays deferred to v0.2. It sits on the eval-harness non-goal boundary and its proposed dependency is unverified. The v0.2 candidate shape is a deployment smoke test (one grounded question with citations), which serves pillar B, rather than eval CSVs | User |
