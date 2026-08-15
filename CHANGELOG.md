@@ -1,0 +1,39 @@
+# Changelog
+
+All notable changes to project assets (code, configs, docs, samples). Not a running narrative — the "why" for design decisions lives in [docs/pac-copilot-kit-design.md](docs/pac-copilot-kit-design.md)'s decision log; in-flight status lives in [SESSION-STATE.md](SESSION-STATE.md).
+
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+- `LICENSE` (MIT), `README.md` public entrypoint, `.gitignore`.
+- Repository initialized with git. First commit.
+- Design §12.8 closed: Web API funnel acquires its own token, independent of `pac`. CI uses SPN client credentials with no extra dependency; dev resolves `PCK_ACCESS_TOKEN`, then `az`, then `Az.Accounts`.
+- Design §12.9 closed: v0.1 grows to include pillar A.
+- `CLAUDE.md` — canons file, session protocol, project facts, conventions.
+- `docs/pac-copilot-kit-design.md` — full architecture design with signed-off guard funnel, MCP verb set, v0.1 scope, and open questions ledger.
+- `SESSION-STATE.md` — recovery brief for resuming after folder rename.
+- `CHANGELOG.md` — this file.
+- `docs/pac-copilot-kit-design.md` §0 revision note, §6.3 record shapes, §7.1–§7.3 pillar-tagged cmdlet surface, §10.3 what is genuinely not automatable.
+- New preflight guards in design §6.1: `Assert-PckAgentHarness`, `Assert-PckAgentAuthMode`, `Assert-PckDataverseSearchEnabled`.
+- New wrap-and-translate guards in design §6.2: find columns, `SyncToExternalSearchIndex` at create time, memo `Format: TextArea`, flow-not-in-solution, Power Fx colon-space YAML parse.
+- New proposed cmdlets in design §7: `New-PckKnowledgeSource`, `Enable-PckDataverseSearch`, `Get-PckAgentInfo`, `Edit-PckSolutionXml`, `Test-PckSolutionCompleteness`, `Get-PckPostDeployChecklist`.
+- New design rule §5.9, forward from source, never round-trip.
+- New open questions §12.8 (Web API token source), §12.9 (v0.1 rescope), §12.10 (MCP verb for pillar A).
+
+### Changed
+- `docs/pac-copilot-kit-design.md` §1 and §2 restated around two pillars: capability (Dataverse knowledge sources) and paved road (executable ALM).
+- Design §12.1 v0.1 scope marked reopened.
+- Design §8.3 annotated with the pillar A verb gap.
+- Workspace path references corrected to the current folder.
+- Private working-area paths removed from all tracked files per canon 13.
+- Sample environment ids in design §9 replaced with an all-zero placeholder; solution and SPN names in §10 desourced to `WorkbenchSupportAssistant` / `WorkbenchSandbox-SPN`; POC product name and paths removed from design §1 and §2. All per canon 13.
+- Em dashes removed from the design doc per the owner style rule.
+
+### Fixed
+- Design §6.2 `savedquery` guard: no working Web API route exists. The prior claim of a `layoutxml`-first two-call translation is withdrawn as unproven; the guard now refuses and names solution surgery or the portal path.
+- Design §6.3: knowledge components attach via the `parentbotid` lookup, not the `bot_botcomponent` N:N relationship. Prior "N:N intersect" wording corrected.
+- Design §5: noted that the Web API token source was never specified and conflicts with the POC's proven `pac`-independent approach. Raised as §12.8.
+- `CLAUDE.md` canon 1 amended to the two-pillar definition; canon 12 superseded (rename already happened, `git init` still pending); canon 13 extended to cover `SESSION-STATE.md` and the design doc; canons 14, 15, and 16 added.
+- `SESSION-STATE.md` reframed around the two pillars, open-questions ledger grown to eight, stale rename statements corrected, and the sandbox name and environment id removed per canon 13.

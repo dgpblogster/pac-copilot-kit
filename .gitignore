@@ -1,0 +1,41 @@
+# Secrets and local environment state. Never commit these (canon 13).
+.env
+*.env
+!*.env.example
+local.settings.json
+*.secret
+*.secrets.ps1
+PCK_*.local.*
+
+# Solution artifacts and backups produced by the kit
+out/
+*.zip
+!samples/**/*.zip
+
+# PowerShell
+*.psd1.bak
+TestResults/
+testResults.xml
+coverage.xml
+
+# Node (MCP server)
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+.npmrc
+
+# Editors and OS
+.vs/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# VS Code: keep shared config, ignore personal overrides.
+# mcp.json is tracked deliberately as a sample client config.
+.vscode/*
+!.vscode/mcp.json
+!.vscode/extensions.json
+!.vscode/settings.json
