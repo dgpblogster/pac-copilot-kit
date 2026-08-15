@@ -51,26 +51,20 @@ The design was reconciled against the two private source articles, the Dataverse
 - **§12.8, Web API token source: settled.** The funnel acquires its own token and never depends on `pac` state. This was settled by verification, not preference: no `pac` command emits a bearer token (the whole `pac auth` surface is `clear`, `create`, `delete`, `list`, `name`, `select`, `update`, `who`), and the VS Code extension's Auth Panel is a GUI over the same machine-global profiles, so it neither avoids the drift nor supplies a token. **One code path for every developer, no editor-conditional behavior.** CI uses SPN client credentials against the Entra token endpoint with scope `{org}/.default`, which needs no extra dependency at all. Dev resolves in order: `PCK_ACCESS_TOKEN`, then `az account get-access-token`, then `Get-AzAccessToken` from `Az.Accounts`, then a hard error naming all three. `az` is an accepted path, never a prerequisite.
 - **§12.9, v0.1 scope: grows to include pillar A.** See design §12.9 for the cmdlet list.
 
-### Still open (blocks scaffolding — need owner sign-off before code)
+### All §12 items are closed as of 2026-08-15
 
-Six items in design doc §12. Owner defaults are noted in each. All six can be answered with "defaults" in one line; none is structural.
-
-| # | Question | Default proposed |
-|---|---|---|
-| §12.2 | Public PS API cmdlet names (§7) — sign off as-is or revise? §7 grew substantially in the 2026-08-14 revision, so this is worth an actual read. | Sign off as-is |
-| §12.4 | PowerShell floor 7.4+ (rules out 5.1)? | Yes |
-| §12.5 | Node floor 20 LTS for MCP server? | Yes |
-| §12.6 | PS Gallery publish path — manual for v0.1, or automated release workflow immediately? | Manual for v0.1 |
-| §12.7 | War-stories sanitization ownership — this repo owns sanitized `docs/war-stories.md`; blog references it? | Yes |
-| §12.10 | MCP verb for pillar A. Add a seventh verb (`add-knowledge-source`), which amends canon 11, or reach pillar A only through `run-pipeline`? | Add it |
+Nothing blocks code. The last batch: §7 cmdlet names as proposed with the `Pck` prefix kept after a `Pac`-prefix challenge, PowerShell 7.4+, Node 20 LTS, manual Gallery publish for v0.1, war-stories owned by this repo, and `add-knowledge-source` added as the seventh MCP verb (canon 11 amended). `Test-PckCopilotAgent` stays deferred to v0.2; its candidate shape there is a deployment smoke test (one grounded question with citations), not eval CSVs.
 
 ## 4. Next action
 
 **Done 2026-08-15:** `git init` on `main`, first commit, with `LICENSE` (MIT), `README.md`, and `.gitignore`. Repo-local git identity set to the owner's GitHub noreply address so the real address stays out of public history. Repo created at `https://github.com/dgpblogster/pac-copilot-kit` and pushed; `main` tracks `origin/main`. **Visibility: private for now, deliberately.** The design doc condenses the findings of two still-unpublished blog articles (the Dataverse knowledge article and the agent ALM article), and a public repo would front-run their debut. **Flip to public when those two articles publish**; that is the trigger, not a date. Canon 13 discipline is unchanged meanwhile: commit as if public, leak-check before every push, so the flip needs no cleanup.
 
-1. **Walking skeleton, the next real work.** `Connect-PckPowerPlatform` + `Invoke-PckDataverseRequest` + `Get-PckAgentInfo` + `Assert-PckAgentHarness` + a Pester test. `Get-PckAgentInfo` is the deliberate first cmdlet rather than the pipeline: it is read-only, safe against a live environment, a preflight dependency for all of pillar A, and in roughly fifty lines it forces auth, the funnel, `-Json` output, exit codes, and the first guard to become real. Repo skeleton per design §11 gets created as this lands, not as a separate empty-folder step.
-2. **The `savedquery` refusal test.** Locks canon 6's authoring contract using the one guard that has no translated call, so the "guard that refuses" shape is proven before any second guard exists.
-3. **`New-PckKnowledgeSource`.** The headline pillar A cmdlet, once the funnel and guards underneath it are trusted.
+**Done 2026-08-15, walking skeleton:** `Connect-PckPowerPlatform`, `Invoke-PckDataverseRequest`, `Get-PckAgentInfo`, `Assert-PckAgentHarness`, `Assert-PckSavedQueryFetchXmlRoute`, token chain per §12.8, `docs/war-stories.md` stories 1 and 2. 31 unit tests passing; 3 integration tests tagged `Integration` await a live run.
+
+1. **Run the integration tests against the sandbox.** `Invoke-Pester -Path tests -Tag Integration` with `PCK_DEFAULT_ENVIRONMENT_ID` set in the shell and an `az login` session. First live proof of the auth chain, discovery, WhoAmI, harness classification, and the story 1 refusal contract. Nothing mutates except the story 1 PATCH, which writes an existing value back and is documented to fail.
+2. **Verify the bot `authenticationmode` storage shape** against the live environment (canon 16), then add the auth-mode field to `Get-PckAgentInfo` and write `Assert-PckAgentAuthMode`. Deliberately omitted from the skeleton because the shape is unverified.
+3. **`New-PckKnowledgeSource`.** The headline pillar A cmdlet. The funnel, guards, and solution-header enforcement it needs all exist now.
+4. **`Invoke-PckCopilotPipeline`**, then the MCP shim (`src/pac-copilot-kit-mcp/`), then `ci/` and `samples/` per design §11.
 
 Integration testing needs a real environment. Its id goes in the owner's shell via `PCK_DEFAULT_ENVIRONMENT_ID` and is never checked in (canon 13).
 4. Write the first Pester test for a war-story guard: the `savedquery` PATCH `0x80040216` case. Locks the guard-authoring contract (canon 6) with a real example before any second guard exists.

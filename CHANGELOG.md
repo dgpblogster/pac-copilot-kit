@@ -7,6 +7,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 ## [Unreleased]
 
 ### Added
+- `src/PacCopilotKit/` module skeleton: `PacCopilotKit.psd1` (0.1.0, PowerShell 7.4 floor), `PacCopilotKit.psm1` with the `PckError` / `PckPreflightError` types and the exit-code registry.
+- Web API funnel `Invoke-PckDataverseRequest` (canon 5): construction-guard dispatch, solution-header enforcement with explicit `-NoSolution` opt-out (canon 7), Retry-After honoring retry on 429/503, error translation, created-EntityId extraction.
+- Token acquisition per design §12.8: `Get-PckAccessToken` (SPN client credentials in CI; `PCK_ACCESS_TOKEN`, then `az`, then `Az.Accounts` in dev), `Get-PckJwtExpiry`, `Get-PckAuthHeaders`.
+- Environment resolution: `Resolve-PckEnvironmentId` (canon 4), `Resolve-PckOrgUrl` via global discovery.
+- Public cmdlets: `Connect-PckPowerPlatform`, `Get-PckAgentInfo`.
+- Guards: `Assert-PckSavedQueryFetchXmlRoute` (war story 1, refuses with exit 20), `Assert-PckAgentHarness` (war story 2, refuses with exit 14).
+- `Private/EntitySetPluralOverrides.psd1` with the `dvtablesearchs` entry.
+- `docs/war-stories.md` with stories 1 and 2, satisfying canon 6 for both shipped guards.
+- `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
 - `LICENSE` (MIT), `README.md` public entrypoint, `.gitignore`.
 - Repository initialized with git. First commit.
 - Design §12.8 closed: Web API funnel acquires its own token, independent of `pac`. CI uses SPN client credentials with no extra dependency; dev resolves `PCK_ACCESS_TOKEN`, then `az`, then `Az.Accounts`.
