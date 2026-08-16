@@ -180,6 +180,28 @@ Describe 'Invoke-PckPacCommand against a real (fake) executable' {
         $err.Exception.Message | Should -Match 'code 7'
     }
 
+    It 'does not believe a zero exit code when pac printed an Error: line (war story 7)' {
+        # Observed live 2026-08-16, three times in one session: pac exits 0 on
+        # argument and validation errors while printing 'Error: ...'.
+        $liar = Join-Path $script:fakePacDir 'pacliar.cmd'
+        Set-Content -Path $liar -Value "@echo off`r`necho Error: A required argument --name is missing.`r`nexit /b 0"
+        Mock -ModuleName PacCopilotKit Get-Command { Microsoft.PowerShell.Core\Get-Command (Join-Path $script:fakePacDir 'pacliar.cmd') } -ParameterFilter { $Name -eq 'pac' }
+        $err = { InModuleScope PacCopilotKit { Invoke-PckPacCommand -Arguments @('copilot', 'init') } } |
+            Should -Throw -PassThru
+        $err.Exception.Message | Should -Match 'Error:'
+        $err.Exception.Message | Should -Match 'exit code was 0'
+    }
+
+    It 'withholds even the lying output when the command was sensitive' {
+        $liar = Join-Path $script:fakePacDir 'pacliar2.cmd'
+        Set-Content -Path $liar -Value "@echo off`r`necho Error: bad secret SUPERSECRET-VALUE`r`nexit /b 0"
+        Mock -ModuleName PacCopilotKit Get-Command { Microsoft.PowerShell.Core\Get-Command (Join-Path $script:fakePacDir 'pacliar2.cmd') } -ParameterFilter { $Name -eq 'pac' }
+        $err = { InModuleScope PacCopilotKit { Invoke-PckPacCommand -Sensitive -Arguments @('auth', 'create') } } |
+            Should -Throw -PassThru
+        $err.Exception.Message | Should -Not -Match 'SUPERSECRET'
+        $err.Exception.Message | Should -Match 'withheld'
+    }
+
     It 'refuses with exit code 13 when pac is not on the PATH at all' {
         Mock -ModuleName PacCopilotKit Get-Command { $null } -ParameterFilter { $Name -eq 'pac' }
         $err = { InModuleScope PacCopilotKit { Invoke-PckPacCommand -Arguments @('help') } } |

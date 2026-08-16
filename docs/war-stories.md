@@ -94,3 +94,15 @@ Custom versus system, `SyncToExternalSearchIndex`, and `TableType` were each tes
 **Guards.** Two, plus a rule. `Assert-PckPacVersion` (exit 13) refuses a missing, unreadable, or below-floor pac. `Assert-PckProfileAligned` (exit 16) runs pac org who and refuses unless the Environment ID line matches the pinned environment id, or the Org URL host matches the pinned org URL; a target id appearing anywhere else in the output does not count. The rule: in CI mode the profile question is removed entirely, because the pipeline creates a temporary profile from the SPN variables and deletes it on exit, success or failure.
 
 **Tests.** Unit: floor pass and refusal, unreadable banner refusal, alignment by id, alignment by org URL, drift refusal naming both environments, no-profile refusal, and the adversarial case where the target id appears on the wrong line. The pac runner itself is tested against a real failing executable, including the sensitive-arguments case: a command carrying a client secret fails without the secret, the arguments, or the echoed output appearing in the error.
+
+## Story 7: pac exits 0 on errors it prints
+
+**Symptom.** pac prints `Error: A required argument --name is missing.` (or an environment-resolution failure, or another validation error) and then exits with code 0. Observed live three times in a single session on pac 2.10.1: an init missing required arguments, a delete missing required arguments, and a delete whose `--environment` value could not be resolved. Any pipeline gating on the exit code alone treats these as success and keeps going.
+
+**Why it matters.** Exit codes are the entire contract between a CLI and CI. A step that fails while reporting success does not stop the pipeline; the failure surfaces later, downstream, disguised as something else.
+
+**Also learned in the same session.** `--environment` values resolve within the active auth profile's tenant, so targeting an environment in another tenant needs the profile switched first, regardless of what `--environment` says. And an agent cannot be deleted through the raw Dataverse `bots` DELETE while components reference it, and even component-free deletion can be gated by an unprovisioned feature flag; `pac copilot delete --bot <id> --confirm` is the route that works.
+
+**Guard.** Inside `Invoke-PckPacCommand`, the single pac funnel: a zero exit code is not believed on its own. Any `Error:` line in the output fails the call, with the same sensitive-argument redaction as a real non-zero exit.
+
+**Tests.** Unit: a fake pac that prints an Error: line and exits 0 is treated as a failure, and a sensitive variant proves the lying output is withheld along with the arguments.

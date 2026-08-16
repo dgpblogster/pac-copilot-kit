@@ -51,5 +51,17 @@ function Invoke-PckPacCommand {
             "pac exited with code $LASTEXITCODE. Command: $display`n$detail",
             $script:PckExitCode.General)
     }
+
+    # pac exits 0 on argument and validation errors while printing 'Error: ...',
+    # observed live three times in one session (war story 7). The exit code alone
+    # is not trusted; an Error: line in the output is a failure.
+    $errorLines = @($output | Where-Object { $_ -match '^\s*Error:' })
+    if ($errorLines.Count -gt 0) {
+        $detail = if ($Sensitive) { 'Output withheld: the command carried sensitive arguments.' }
+                  else { $errorLines -join "`n" }
+        throw [PckError]::new(
+            "pac reported an error although its exit code was 0 (war story 7). Command: $display`n$detail",
+            $script:PckExitCode.General)
+    }
     return $output
 }

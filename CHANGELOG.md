@@ -18,6 +18,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 - `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
 - `tests/PacCopilotKit.Tests/PckAdversarial.Tests.ps1`: 13 adversarial tests written red-first against the walking skeleton; 7 landed as real defects, fixed below. Suite total 44 unit tests, all passing.
 
+### Added (live pipeline run, 2026-08-16)
+- `Invoke-PckCopilotPipeline` live-proven end to end: the drift guard refused a genuinely misaligned profile with exit 16, and with an aligned profile the full loop ran clean against a real environment (lint over 15 Microsoft-authored scaffold files with zero false positives, pack to the predicted zip path, import and publish). Probe artifacts removed; environment left as found.
+- War story 7: pac exits 0 on errors it prints, observed three times live. `Invoke-PckPacCommand` no longer believes a zero exit code when the output carries an `Error:` line, with the same sensitive redaction; two red-first tests pin it. Suite: 106 unit + 4 live.
+
 ### Changed (README rewrite, 2026-08-16)
 - `README.md` reauthored in the owner's voice per the private voice profile: narrative why-this-exists, the loop with commentary, and honest boundaries, replacing the spec-sheet register.
 - New README section "If you are an AI agent working with this kit": install-from-source steps, floor checks, the explicit-environment rule, the `-Json` contract, the exit-code decision table, the refusals-are-information rule, real-wait guidance, and dry-run-first.
