@@ -6,6 +6,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 
 ## [Unreleased]
 
+### Added (CI recipes, 2026-08-16)
+- `ci/github-actions/deploy-agent.yml` and `ci/azure-pipelines/deploy-agent.yml`: plan-then-deploy pipelines using the kit's CI mode (temporary pac profile, no who-am-i step). Syntax-validated; end-to-end run recorded after the Gallery publish, per `ci/README.md`.
+- `ci/README.md`: variable wiring, why the recipes are short, reading typed failures in a log, and the pre-release from-source install variant.
+
 ### Changed (terminology and MCP docs, 2026-08-16)
 - "Guard" renamed to "guardrail" across all docs, error messages, and the `Private/Guardrails/` folder, with the two tiers named preflight checks and error translators; internal registries renamed to match (`PckRequestConstructionChecks`, `PckErrorTranslators`). Verb uses of "guard" kept; no public cmdlet names affected. Full suite re-run green (109 unit), MCP server rebuilt and smoke-tested.
 - README gains "Installing the MCP server" (build from clone, client wiring, the pac-mcp distinction); `docs/mcp-clients.md` added with the full walkthrough: prerequisites, environment variables, the seven verbs, refusal semantics, and startup troubleshooting.

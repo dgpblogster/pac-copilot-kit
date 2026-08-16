@@ -130,7 +130,8 @@ This section is for you, not for your human. The kit was designed to be driven b
 - [Design](docs/pac-copilot-kit-design.md): the full architecture, guardrail funnel, and decision log
 - [War stories](docs/war-stories.md): the `pac` and Dataverse gotchas the guardrails encode, one honest entry per guardrail
 - [MCP clients](docs/mcp-clients.md): installing the server, wiring each client, the seven verbs, and troubleshooting
-- `docs/quickstart.md`, `docs/ci-recipes.md` *(planned)*
+- [CI recipes](ci/README.md): GitHub Actions and Azure DevOps pipelines, and how to read a typed failure in a log
+- `docs/quickstart.md` *(planned)*
 
 **NOTE:** part of what this kit does relies on undocumented Dataverse record shapes, discovered by inspecting what the Copilot Studio maker portal writes. Those shapes are not supported by Microsoft and can change in any release. The kit verifies rather than assumes, the affected surface is called out explicitly in the war stories, and the integration tests are built to detect the platform shifting underneath us. Use it for development and ALM automation with your eyes open.
 

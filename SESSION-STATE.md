@@ -73,9 +73,11 @@ Nothing blocks code. The last batch: §7 cmdlet names as proposed with the `Pck`
 
 **v0.1 scope is now code-complete.** Every §12.9 item exists and is proven: the guardrails, both funnels, all eight public cmdlets, and the MCP server.
 
-1. **`ci/` recipes** (`ci/github-actions/`, `ci/azure-pipelines/`) per design §11: the §10 sketches turned into runnable examples.
-2. **Release mechanics:** Gallery publish is manual per §12.6; npm publish for the MCP server; both need the owner's accounts. Then the repo-public decision waits on the two source articles publishing.
-3. **Deferred, unchanged:** table-create half of `New-PckKnowledgeSource` (parameter shape), `Test-PckCopilotAgent` (v0.2, deployment smoke test shape), war story 1 discriminator (blog material).
+**Done 2026-08-16, CI recipes:** `ci/github-actions/deploy-agent.yml` and `ci/azure-pipelines/deploy-agent.yml` (plan-then-deploy; the kit's CI mode removes the who-am-i and profile plumbing; Azure DevOps uses only the Build Tools extension's Tool Installer task), plus `ci/README.md` with variable wiring, typed-failure reading, and the pre-release from-source install variant. Syntax-validated; honestly marked as not yet run end to end in hosted CI, which needs the Gallery publish and a service principal. Also done the same day: the guard-to-guardrail terminology sweep (owner decision; tiers are preflight checks and error translators) and the MCP install documentation (README section plus docs/mcp-clients.md).
+
+1. **Release mechanics (owner):** Gallery publish is manual per §12.6; npm publish for the MCP server; both need the owner's accounts. First hosted CI run after the Gallery publish, recorded in `ci/README.md`.
+2. **Repo-public flip (owner, gated):** when the two source articles publish.
+3. **Deferred, unchanged:** table-create half of `New-PckKnowledgeSource` (parameter shape), `Test-PckCopilotAgent` (v0.2, deployment smoke test shape), war story 1 discriminator (blog material), `docs/quickstart.md`.
 3. **Deferred within `New-PckKnowledgeSource`:** the optional custom-table create from §7.1. Needs a parameter-shape decision (how callers specify columns) before it can be built; the cmdlet targets existing tables meanwhile.
 4. **Open question for the blog:** war story 1's discriminator. The failing-versus-accepting view difference is unidentified; whoever finds it gets a good article section. Not a blocker for the kit, since attempt-and-translate handles both outcomes.
 

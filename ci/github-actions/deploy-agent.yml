@@ -1,0 +1,58 @@
+# Deploy a Copilot Studio agent with pac-copilot-kit, forward from source.
+#
+# What this does: install pac, install the kit, dry-run the deployment, then
+# run it for real. The kit handles pac auth itself in CI mode: the complete
+# PCK_SPN_* set makes it create a temporary pac profile for the run and delete
+# it on exit, success or failure. No who-am-i step, no profile management.
+#
+# Required repository configuration:
+#   Variables: PCK_SPN_TENANT, PCK_SPN_APP_ID, PCK_ENVIRONMENT_ID
+#   Secrets:   PCK_SPN_SECRET
+# The service principal needs access to the target environment.
+#
+# See ci/README.md for the pre-release install variant and troubleshooting.
+
+name: Deploy Copilot Studio agent
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['agent/**']
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+    env:
+      PCK_SPN_TENANT: ${{ vars.PCK_SPN_TENANT }}
+      PCK_SPN_APP_ID: ${{ vars.PCK_SPN_APP_ID }}
+      PCK_SPN_SECRET: ${{ secrets.PCK_SPN_SECRET }}
+      PCK_DEFAULT_ENVIRONMENT_ID: ${{ vars.PCK_ENVIRONMENT_ID }}
+      PCK_WORKSPACE_ROOT: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Puts the pac CLI on the PATH.
+      - uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Install PacCopilotKit
+        shell: pwsh
+        run: Install-Module PacCopilotKit -Scope CurrentUser -Force
+
+      # Preflight, profile alignment, and offline lint, with nothing mutated.
+      # A failure here is a typed refusal: exit codes 10..19 mean the
+      # environment or inputs are misconfigured, and the message names which.
+      - name: Plan deployment
+        shell: pwsh
+        run: |
+          Import-Module PacCopilotKit
+          Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+            -SourcePath agent -PublisherPrefix wrk -WhatIf -Json
+
+      - name: Deploy
+        shell: pwsh
+        run: |
+          Import-Module PacCopilotKit
+          Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+            -SourcePath agent -PublisherPrefix wrk -Json

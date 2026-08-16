@@ -1,0 +1,66 @@
+# Deploy a Copilot Studio agent with pac-copilot-kit, forward from source.
+#
+# What this does: install pac, install the kit, dry-run the deployment, then
+# run it for real. The kit handles pac auth itself in CI mode: the complete
+# PCK_SPN_* set makes it create a temporary pac profile for the run and delete
+# it on exit, success or failure. No PowerPlatformWhoAmI task, no service
+# connection for the deploy itself.
+#
+# Required pipeline configuration:
+#   Variables: SpnTenant, SpnAppId, EnvironmentId
+#   Secret variable: SpnSecret (mark it secret; it is mapped explicitly below,
+#   because secret variables do not flow into scripts on their own)
+# The service principal needs access to the target environment.
+#
+# See ci/README.md for the pre-release install variant and troubleshooting.
+
+trigger: none
+
+pool:
+  vmImage: windows-latest
+
+steps:
+  # Puts the pac CLI on the PATH.
+  - task: PowerPlatformToolInstaller@2
+
+  - task: PowerShell@2
+    displayName: Install PacCopilotKit
+    inputs:
+      targetType: inline
+      pwsh: true
+      script: Install-Module PacCopilotKit -Scope CurrentUser -Force
+
+  # Preflight, profile alignment, and offline lint, with nothing mutated.
+  # A failure here is a typed refusal: exit codes 10..19 mean the environment
+  # or inputs are misconfigured, and the message names which.
+  - task: PowerShell@2
+    displayName: Plan deployment
+    env:
+      PCK_SPN_TENANT: $(SpnTenant)
+      PCK_SPN_APP_ID: $(SpnAppId)
+      PCK_SPN_SECRET: $(SpnSecret)
+      PCK_DEFAULT_ENVIRONMENT_ID: $(EnvironmentId)
+      PCK_WORKSPACE_ROOT: $(Build.SourcesDirectory)
+    inputs:
+      targetType: inline
+      pwsh: true
+      script: |
+        Import-Module PacCopilotKit
+        Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+          -SourcePath agent -PublisherPrefix wrk -WhatIf -Json
+
+  - task: PowerShell@2
+    displayName: Deploy
+    env:
+      PCK_SPN_TENANT: $(SpnTenant)
+      PCK_SPN_APP_ID: $(SpnAppId)
+      PCK_SPN_SECRET: $(SpnSecret)
+      PCK_DEFAULT_ENVIRONMENT_ID: $(EnvironmentId)
+      PCK_WORKSPACE_ROOT: $(Build.SourcesDirectory)
+    inputs:
+      targetType: inline
+      pwsh: true
+      script: |
+        Import-Module PacCopilotKit
+        Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+          -SourcePath agent -PublisherPrefix wrk -Json

@@ -418,7 +418,7 @@ pac-copilot-kit/
 │   └── mcp-clients.md                    # planned
 ├── samples/
 │   └── mcp-config/                       # copy-paste configs for the three clients
-├── ci/                                   # planned: runnable versions of the section 10 sketches
+├── ci/                                   # runnable recipes: github-actions/, azure-pipelines/, README
 ├── tests/
 │   └── PacCopilotKit.Tests/              # Pester: unit suites + Integration-tagged live tests
 ├── LICENSE                               # MIT
