@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "description": "Local MCP server (stdio) exposing the PacCopilotKit guarded Copilot Studio lifecycle as task-shaped verbs. The thin shim over the PowerShell module; every behavior lives in the module.",
   "license": "MIT",
+  "author": "Mariano Gomez Bent",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "power-platform",
+    "copilot-studio",
+    "dataverse",
+    "alm",
+    "pac"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "bin": {

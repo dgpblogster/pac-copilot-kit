@@ -21,9 +21,10 @@
     AliasesToExport   = @()
     PrivateData       = @{
         PSData = @{
-            Tags       = @('PowerPlatform', 'CopilotStudio', 'Dataverse', 'ALM', 'pac')
-            LicenseUri = 'https://github.com/dgpblogster/pac-copilot-kit/blob/main/LICENSE'
-            ProjectUri = 'https://github.com/dgpblogster/pac-copilot-kit'
+            Tags         = @('PowerPlatform', 'CopilotStudio', 'Dataverse', 'ALM', 'pac', 'MCP', 'Windows')
+            LicenseUri   = 'https://github.com/dgpblogster/pac-copilot-kit/blob/main/LICENSE'
+            ProjectUri   = 'https://github.com/dgpblogster/pac-copilot-kit'
+            ReleaseNotes = 'v0.1.0: first release. Dataverse knowledge source creation (the step pac cannot do), the guarded deploy pipeline, search enablement and readiness, solution backup, agent sync, and the guardrail funnel with typed exit codes. Companion MCP server: pac-copilot-kit-mcp on npm.'
         }
     }
 }
