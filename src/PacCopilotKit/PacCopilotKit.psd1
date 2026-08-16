@@ -11,6 +11,7 @@
         'Enable-PckDataverseSearch'
         'Export-PckSolutionBackup'
         'Get-PckAgentInfo'
+        'New-PckKnowledgeSource'
         'Wait-PckDataverseSearchReady'
     )
     CmdletsToExport   = @()

@@ -174,6 +174,7 @@ Two attachment facts that are easy to get wrong, and one of which the first pass
 
 - **The component attaches to the agent through the `parentbotid` lookup**, not through the `bot_botcomponent` N:N relationship. That relationship exists in the schema and stays empty for knowledge components; the parent lookup is what the platform actually reads. An implementation that populates `bot_botcomponent` produces a component the agent never sees.
 - `schemaname` follows the convention `<botSchemaName>.knowledge.<componentName>`, where the bot schemaname must be **read** from `GET /bots`, never constructed. Agents created in the newer experience carry a random suffix in theirs.
+- Deleting the `componenttype` 16 botcomponent **cascade-deletes the associated `dvtablesearch` and its `dvtablesearchentity` children** (observed live 2026-08-16, one org). Cleanup code should treat 404 on the children as already-done rather than as failure.
 
 ### 6.4 Guard-authoring rule
 
@@ -478,6 +479,9 @@ Written out so scope creep gets caught early.
 | 2026-08-15 | First live run (owner's tenant, Workbench environment): auth chain, discovery, WhoAmI, and harness classification all passed first try. Both harnesses present live; classified correctly | Live integration run |
 | 2026-08-15 | War story 1 narrowed by live evidence and the guard redesigned from construction-refusal to attempt-and-translate (`Convert-PckSavedQueryFetchXmlError`). Sync flag, custom/system, and TableType ruled out as discriminators; discriminator unknown | Third-org verification pass |
 | 2026-08-15 | `bot.authenticationmode` shape verified live; auth-mode fields added to `Get-PckAgentInfo` and `Assert-PckAgentAuthMode` guard shipped (exit 18, war story 3) | Live verification, canon 16 |
+| 2026-08-16 | `New-PckKnowledgeSource` shipped and live-proven end to end: created, independently verified, and removed a real knowledge source on a live standard-harness agent. Pillar A is real | Live integration round trip |
+| 2026-08-16 | The table-create half of `New-PckKnowledgeSource` (§7.1) deferred pending a parameter-shape decision; the cmdlet targets existing tables meanwhile | Implementation judgment, flagged in SESSION-STATE |
+| 2026-08-16 | Observed: botcomponent delete cascades to the associated dvtablesearch records (§6.3 note); solution-existence preflight shipped as `Assert-PckSolutionExists` (exit 19, war story 5) | Live integration round trip |
 | 2026-08-15 | Repo created public, then flipped private the same day: the design doc condenses two unpublished articles, and the repo should not front-run their debut. Public again when both publish. Canon 13 discipline unchanged while private | User |
 | 2026-08-15 | All remaining §12 items closed: §7 names as proposed with the `Pck` prefix kept after a `Pac`-prefix challenge, PowerShell 7.4+, Node 20 LTS, manual Gallery publish for v0.1, war-stories owned here, seventh MCP verb `add-knowledge-source` added (canon 11 amended) | User ("let's build") |
 | 2026-08-15 | `Test-PckCopilotAgent` stays deferred to v0.2. It sits on the eval-harness non-goal boundary and its proposed dependency is unverified. The v0.2 candidate shape is a deployment smoke test (one grounded question with citations), which serves pillar B, rather than eval CSVs | User |

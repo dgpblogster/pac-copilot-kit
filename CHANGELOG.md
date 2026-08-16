@@ -18,6 +18,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 - `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
 - `tests/PacCopilotKit.Tests/PckAdversarial.Tests.ps1`: 13 adversarial tests written red-first against the walking skeleton; 7 landed as real defects, fixed below. Suite total 44 unit tests, all passing.
 
+### Added (pillar A live-proven, 2026-08-16)
+- `New-PckKnowledgeSource`: the headline cmdlet. Full preflight (harness, auth mode, solution existence, table existence, duplicate search name), the four-record create chain inside the solution, best-effort rollback on mid-chain failure, and honest warnings for the two preconditions it cannot solve (org search flag; find columns). Live-proven end to end: created, independently verified, and removed a real knowledge source on a live agent.
+- `Assert-PckSolutionExists` preflight guard (exit 19). War story 5.
+- `Get-PckQuickFindColumns` private helper: reads the find columns Dataverse search actually indexes, using the war story 4 filter.
+- Design §6.3 note: botcomponent delete cascades to the associated dvtablesearch records (observed live).
+- 14 new unit tests plus a live end-to-end integration round trip. Suite: 79 unit + 4 live, all passing.
+
 ### Added (first live run, 2026-08-15)
 - `Get-PckAgentInfo` now returns `AuthenticationMode` and `AuthenticationModeName`; `bot.authenticationmode` picklist verified live (0 Unspecified, 1 None, 2 Integrated, 3 Custom Entra ID, 4 Generic OAuth2).
 - `Assert-PckAgentAuthMode` preflight guard (exit 18): only Integrated grounds on Dataverse knowledge. War story 3.

@@ -63,9 +63,11 @@ Nothing blocks code. The last batch: §7 cmdlet names as proposed with the `Pck`
 
 **Done 2026-08-15, walking skeleton:** `Connect-PckPowerPlatform`, `Invoke-PckDataverseRequest`, `Get-PckAgentInfo`, `Assert-PckAgentHarness`, `Assert-PckSavedQueryFetchXmlRoute`, token chain per §12.8, `docs/war-stories.md` stories 1 and 2. Then an adversarial pass, red first: 13 attack tests, 7 real defects (4 guard bypasses by respelling the request, empty-set `-Json` shape, plain-http URL acceptance), all fixed. 44 unit tests passing; 3 integration tests tagged `Integration` await a live run. **Working practice: every guard gets an adversarial bypass hunt, red first, before it ships.**
 
-1. **`New-PckKnowledgeSource`.** The headline pillar A cmdlet. Everything under it now exists and is live-proven: funnel, solution-header enforcement, harness and auth-mode guards, search enable and readiness. Live target available: the owner's Workbench environment has a standard-harness agent (`Workbench Support Assistant 2.0`) and the `wrk_caseresolution` table from article 08.
-2. **`Invoke-PckCopilotPipeline`**, which needs the `pac` invocation layer (`Assert-PckPacVersion`, profile alignment, output parsing).
-3. **MCP shim** (`src/pac-copilot-kit-mcp/`), then `ci/` and `samples/` per design §11.
+**Done 2026-08-16, pillar A live-proven:** `New-PckKnowledgeSource` shipped with full preflight, rollback, and honest warnings, and passed a live end-to-end round trip: created a real knowledge source on the owner's standard-harness agent, verified it by independent reads (componenttype 16, parentbotid, the N:N association), and removed it. Also shipped: `Assert-PckSolutionExists` (exit 19, war story 5), `Get-PckQuickFindColumns`. New live observation recorded in design 6.3: botcomponent delete cascades to the dvtablesearch records. Suite: 79 unit + 4 live, all passing.
+
+1. **`Invoke-PckCopilotPipeline`**, which needs the `pac` invocation layer (`Assert-PckPacVersion`, profile alignment, output parsing). The last big pillar B piece.
+2. **MCP shim** (`src/pac-copilot-kit-mcp/`), then `ci/` and `samples/` per design §11.
+3. **Deferred within `New-PckKnowledgeSource`:** the optional custom-table create from §7.1. Needs a parameter-shape decision (how callers specify columns) before it can be built; the cmdlet targets existing tables meanwhile.
 4. **Open question for the blog:** war story 1's discriminator. The failing-versus-accepting view difference is unidentified; whoever finds it gets a good article section. Not a blocker for the kit, since attempt-and-translate handles both outcomes.
 
 Integration testing needs a real environment. Its id goes in the owner's shell via `PCK_DEFAULT_ENVIRONMENT_ID` and is never checked in (canon 13).

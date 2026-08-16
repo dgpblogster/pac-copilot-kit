@@ -72,3 +72,13 @@ Custom versus system, `SyncToExternalSearchIndex`, and `TableType` were each tes
 **What works.** `returnedtypecode eq 'wrk_caseresolution'`: the logical name, quoted. Discovered 2026-08-15 while building the story 1 verification pass.
 
 **Guard.** None yet. Recorded as inventory; a guard becomes worthwhile when the kit grows a helper that filters saved queries by table.
+
+## Story 5: a wrong solution name fails mid-chain, after records already exist
+
+**Symptom.** Every mutating call in a multi-record create carries `MSCRM.SolutionUniqueName` (canon 7). Name a solution that does not exist, or use the display name instead of the unique name, and the failure surfaces on the first create, after preflight passed and with the caller none the wiser about which of the two names was wanted. In a chain of creates the blast radius grows with every record that succeeded before the failure.
+
+**What works.** Check first. Solution unique names are case-sensitive, distinct from display names, and listable with `pac solution list`.
+
+**Guard.** `Assert-PckSolutionExists`, a preflight guard (exit code 19). It validates the name shape before using it in a filter, then confirms existence in the connected environment before any create runs. `New-PckKnowledgeSource` refuses on it before creating anything, and pairs it with best-effort rollback for failures the preflight cannot predict.
+
+**Tests.** Unit: pass on existing, exit 19 with the `pac solution list` hint on missing, hostile names refused before any network call. Integration: exercised implicitly by the live end-to-end knowledge source round trip.

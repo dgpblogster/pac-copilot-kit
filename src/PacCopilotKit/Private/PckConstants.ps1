@@ -14,6 +14,7 @@ $script:PckExitCode = @{
     EnvironmentUrlInvalid   = 16
     WorkspaceRootUnset      = 17
     AgentAuthModeUnsupported = 18
+    SolutionNotFound        = 19
     KnownBrokenRoute        = 20
 }
 
