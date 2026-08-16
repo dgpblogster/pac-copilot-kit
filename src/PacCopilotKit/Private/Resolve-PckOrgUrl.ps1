@@ -30,7 +30,7 @@ function Resolve-PckOrgUrl {
     if ($match.Count -eq 0) {
         throw [PckPreflightError]::new(
             "Environment '$EnvironmentId' was not found in the global discovery service for the current identity. Check the id, and check that this identity has access to the environment.",
-            $script:PckExitCode.EnvironmentNotFound)
+            $script:PckExitCode.EnvironmentInvalid)
     }
     return ([string]$match[0].Url).TrimEnd('/')
 }

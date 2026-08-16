@@ -2,7 +2,7 @@
 
 A paved-road toolkit for the Microsoft Copilot Studio agent lifecycle, built on the Power Platform CLI (`pac`) and the Dataverse Web API.
 
-> **Status: pre-release.** The design is settled and recorded in [docs/pac-copilot-kit-design.md](docs/pac-copilot-kit-design.md). Code is being scaffolded. Nothing here is installable yet.
+> **Status: pre-release.** The design is settled and recorded in [docs/pac-copilot-kit-design.md](docs/pac-copilot-kit-design.md). The PowerShell module works from source (`Import-Module ./src/PacCopilotKit/PacCopilotKit.psd1`) and its headline path is live-proven; the PowerShell Gallery publish and the MCP server are still ahead, so nothing is `Install-Module`-able yet.
 
 ## Why this exists
 
@@ -71,27 +71,34 @@ pac copilot pack --publisher-prefix wrk --solution-name WorkbenchSupportAssistan
 pac solution import --path .\WorkbenchSupportAssistant.zip --publish-changes
 
 # ── 5. Wire the Dataverse knowledge source (kit; the step pac cannot do) ───────
-# Planned, v0.1 in progress. Creates the table (search-enabled at create time),
-# the table search config, the knowledge component, and the association, every
-# call inside the solution, then polls the search query endpoint (never /status)
-# until seeded rows are actually searchable.
-New-PckKnowledgeSource -SolutionName WorkbenchSupportAssistant `
-    -TableSchemaName wrk_caseresolution -BotName WorkbenchSupportAssistant
-Wait-PckDataverseSearchReady -Table wrk_caseresolution
+# Preflights the harness, the end-user auth mode, and the solution; creates the
+# table search config, the knowledge component, and the association, every call
+# inside the solution, rolling back on mid-chain failure. Then poll the search
+# query endpoint (never /status) until seeded rows are actually searchable.
+New-PckKnowledgeSource -BotName 'WorkbenchSupportAssistant' `
+    -Table wrk_caseresolution -SolutionName WorkbenchSupportAssistant `
+    -DisplayName 'Curated Case Resolutions'
+Enable-PckDataverseSearch                      # once per environment; hours-scale tail
+Wait-PckDataverseSearchReady -Table wrk_caseresolution -SearchText 'scanner'
 
 # ── 6. Backup and commit (kit + git) ───────────────────────────────────────────
-# Planned, v0.1 in progress. The export is a backup; the repository is the agent.
+# The export is a backup; the repository is the agent.
 Export-PckSolutionBackup -SolutionName WorkbenchSupportAssistant -Path .\backups
 git add . ; git commit -m "Milestone: agent deployed and grounded"
 ```
 
-Or, once `Invoke-PckCopilotPipeline` lands, steps 3 through 5 collapse into one call that runs the same sequence with every guard in front of it:
+Or collapse steps 2 through 4 into one call that runs the same sequence with every guard in front of it, and dry-run it first:
 
 ```powershell
-Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant -SourcePath .\agent -Json
+Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+    -SourcePath .\agent -PublisherPrefix wrk -WhatIf   # plan: preflight and lint only
+Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+    -SourcePath .\agent -PublisherPrefix wrk -Json     # the real run
 ```
 
-**Shipped today:** `Connect-PckPowerPlatform`, `Get-PckAgentInfo`, the Web API funnel with its guards, and the token chain. **Planned for v0.1:** `New-PckKnowledgeSource`, `Wait-PckDataverseSearchReady`, `Enable-PckDataverseSearch`, `Invoke-PckCopilotPipeline`, `Export-PckSolutionBackup`, and the MCP server. The division of labor above does not change as those land; only the amount of it that is automated does.
+In CI, the same two commands work unchanged: a complete `PCK_SPN_*` variable set switches the kit to SPN auth, and the pipeline creates a temporary `pac` profile for the run and deletes it on exit, success or failure.
+
+**Shipped today:** everything shown above. `New-PckKnowledgeSource` is live-proven end to end: created, independently verified, and removed against a real environment. **Still ahead for v0.1:** the `pac-copilot-kit-mcp` server (Claude Code, GitHub Copilot, Codex CLI), CI recipe samples, and the PowerShell Gallery publish. The division of labor below does not change as those land.
 
 | Step | Owner | Why |
 |---|---|---|

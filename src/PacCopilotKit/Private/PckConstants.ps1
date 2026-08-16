@@ -4,18 +4,18 @@
 # Exit code registry (canon 9): 10..19 preflight (environment misconfigured),
 # 20 known-broken-route refusal, 1 generic operational failure.
 $script:PckExitCode = @{
-    General                 = 1
-    EnvironmentNotSpecified = 10
-    TokenUnavailable        = 11
-    EnvironmentNotFound     = 12
-    SpnIncomplete           = 13
-    HarnessUnsupported      = 14
-    NotConnected            = 15
-    EnvironmentUrlInvalid   = 16
-    WorkspaceRootUnset      = 17
+    General                  = 1
+    EnvironmentNotSpecified  = 10
+    TokenUnavailable         = 11   # includes an incomplete PCK_SPN_* set
+    EnvironmentInvalid       = 12   # not found in discovery, or a non-https URL
+    PacUnavailable           = 13   # pac missing, unreadable, or below the floor
+    HarnessUnsupported       = 14
+    NotConnected             = 15
+    ProfileMisaligned        = 16   # active pac auth profile points elsewhere (canon 4)
+    WorkspaceRootUnset       = 17
     AgentAuthModeUnsupported = 18
-    SolutionNotFound        = 19
-    KnownBrokenRoute        = 20
+    SolutionNotFound         = 19
+    KnownBrokenRoute         = 20
 }
 
 $script:PckApiVersion   = 'v9.2'

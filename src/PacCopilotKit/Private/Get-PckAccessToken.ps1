@@ -45,7 +45,7 @@ function Get-PckAccessToken {
     if ($spnPresent.Count -gt 0) {
         throw [PckPreflightError]::new(
             'CI mode is selected by the PCK_SPN_* variables, but the set is incomplete. All three of PCK_SPN_TENANT, PCK_SPN_APP_ID, and PCK_SPN_SECRET are required.',
-            $script:PckExitCode.SpnIncomplete)
+            $script:PckExitCode.TokenUnavailable)
     }
 
     if (-not [string]::IsNullOrWhiteSpace($env:PCK_ACCESS_TOKEN)) {

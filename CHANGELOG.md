@@ -18,6 +18,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 - `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
 - `tests/PacCopilotKit.Tests/PckAdversarial.Tests.ps1`: 13 adversarial tests written red-first against the walking skeleton; 7 landed as real defects, fixed below. Suite total 44 unit tests, all passing.
 
+### Added (pillar B pipeline, 2026-08-16)
+- `Invoke-PckCopilotPipeline`: connect, pac floor, pac auth (implicit CI/dev mode; temporary CI profile deleted on exit even on failure), offline workspace lint, `pac copilot pack`, `pac solution import --publish-changes`. `-WhatIf` runs the read-only steps and reports the rest, which is the surface the MCP `plan-deployment` verb will wrap.
+- `Invoke-PckPacCommand`: the single pac funnel, mirroring the Web API funnel. `-Sensitive` withholds arguments **and** output from errors and logging, because pac may echo argument context.
+- `Assert-PckPacVersion` (exit 13) and `Assert-PckProfileAligned` (exit 16), both built against pac output shapes verified live on 2026-08-16. War story 6.
+- `Test-PckAgentWorkspace`: offline lint with named checks (workspace shape, tab indentation, Power Fx colon-space).
+- 25 new unit tests including adversarial cases: secret never leaks through a failing sensitive command, hostile solution names and prefixes refused before pac sees them, drifted profile blocks pack and import, WhatIf runs nothing mutating, CI profile deleted on failure. Suite: 104 unit + 4 live.
+
+### Changed (2026-08-16)
+- Preflight exit codes consolidated: SPN-incomplete now 11 (was 13), invalid environment URL now 12 (was 16); 13 is `PacUnavailable`, 16 is `ProfileMisaligned`. Pre-release, no released consumers.
+- Workspace lint rule corrected during the red-first pass: Power Fx's own quotes do not protect a YAML scalar, so any non-YAML-quoted `=` value containing ': ' is flagged.
+- `README.md` loop example updated to shipped reality: knowledge-source step and backup step no longer marked planned, pipeline collapse shown with `-WhatIf` first, CI note added.
+
 ### Added (pillar A live-proven, 2026-08-16)
 - `New-PckKnowledgeSource`: the headline cmdlet. Full preflight (harness, auth mode, solution existence, table existence, duplicate search name), the four-record create chain inside the solution, best-effort rollback on mid-chain failure, and honest warnings for the two preconditions it cannot solve (org search flag; find columns). Live-proven end to end: created, independently verified, and removed a real knowledge source on a live agent.
 - `Assert-PckSolutionExists` preflight guard (exit 19). War story 5.

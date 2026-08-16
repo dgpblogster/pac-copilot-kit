@@ -50,7 +50,7 @@ function Connect-PckPowerPlatform {
     if ($EnvironmentUrl -notmatch '(?i)^https://') {
         throw [PckPreflightError]::new(
             "Environment URL '$EnvironmentUrl' must be https. A bearer token is attached to every call, and it does not travel over plain http.",
-            $script:PckExitCode.EnvironmentUrlInvalid)
+            $script:PckExitCode.EnvironmentInvalid)
     }
 
     $script:PckToken = $null

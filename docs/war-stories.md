@@ -82,3 +82,15 @@ Custom versus system, `SyncToExternalSearchIndex`, and `TableType` were each tes
 **Guard.** `Assert-PckSolutionExists`, a preflight guard (exit code 19). It validates the name shape before using it in a filter, then confirms existence in the connected environment before any create runs. `New-PckKnowledgeSource` refuses on it before creating anything, and pairs it with best-effort rollback for failures the preflight cannot predict.
 
 **Tests.** Unit: pass on existing, exit 19 with the `pac solution list` hint on missing, hostile names refused before any network call. Integration: exercised implicitly by the live end-to-end knowledge source round trip.
+
+## Story 6: the machine-global pac profile, and the floor that crashes
+
+**Symptom, part one.** pac auth profiles are stored per machine, not per project. A different workspace on the same laptop selects or re-points the active profile, and every subsequent pac command in your project quietly runs against the wrong environment. A deployment lands somewhere you did not aim it, and nothing errors. This is the founding war story of canon 4: the environment id is always explicit, and the profile is never trusted.
+
+**Symptom, part two.** The obvious in-band fix, pac org select, crashes on pac CLI 2.10.1. The version that motivated the guard is also the tested floor, so the kit assumes no selection command and verifies alignment instead.
+
+**Verified live 2026-08-16.** The pac help banner prints the version as `Version: 2.10.1+g52c3983`, and pac org who prints `Environment ID:` and `Org URL:` lines; both parsers are built against those observed shapes. The verification machine itself was a live specimen: its active profile pointed at a different org than the environment the session was working against.
+
+**Guards.** Two, plus a rule. `Assert-PckPacVersion` (exit 13) refuses a missing, unreadable, or below-floor pac. `Assert-PckProfileAligned` (exit 16) runs pac org who and refuses unless the Environment ID line matches the pinned environment id, or the Org URL host matches the pinned org URL; a target id appearing anywhere else in the output does not count. The rule: in CI mode the profile question is removed entirely, because the pipeline creates a temporary profile from the SPN variables and deletes it on exit, success or failure.
+
+**Tests.** Unit: floor pass and refusal, unreadable banner refusal, alignment by id, alignment by org URL, drift refusal naming both environments, no-profile refusal, and the adversarial case where the target id appears on the wrong line. The pac runner itself is tested against a real failing executable, including the sensitive-arguments case: a command carrying a client secret fails without the secret, the arguments, or the echoed output appearing in the error.

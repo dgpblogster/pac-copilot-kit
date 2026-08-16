@@ -79,11 +79,11 @@ Describe 'Get-PckAccessToken' {
         }
     }
 
-    It 'refuses an incomplete PCK_SPN_* set with exit code 13' {
+    It 'refuses an incomplete PCK_SPN_* set with exit code 11' {
         $env:PCK_SPN_TENANT = '22222222-2222-2222-2222-222222222222'
         $err = { InModuleScope PacCopilotKit { Get-PckAccessToken -Resource 'https://unit.crm.dynamics.com' } } |
             Should -Throw -PassThru
-        $err.Exception.ExitCode | Should -Be 13
+        $err.Exception.ExitCode | Should -Be 11
     }
 
     It 'prefers PCK_ACCESS_TOKEN over every other dev source' {

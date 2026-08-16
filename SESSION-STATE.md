@@ -65,8 +65,11 @@ Nothing blocks code. The last batch: §7 cmdlet names as proposed with the `Pck`
 
 **Done 2026-08-16, pillar A live-proven:** `New-PckKnowledgeSource` shipped with full preflight, rollback, and honest warnings, and passed a live end-to-end round trip: created a real knowledge source on the owner's standard-harness agent, verified it by independent reads (componenttype 16, parentbotid, the N:N association), and removed it. Also shipped: `Assert-PckSolutionExists` (exit 19, war story 5), `Get-PckQuickFindColumns`. New live observation recorded in design 6.3: botcomponent delete cascades to the dvtablesearch records. Suite: 79 unit + 4 live, all passing.
 
-1. **`Invoke-PckCopilotPipeline`**, which needs the `pac` invocation layer (`Assert-PckPacVersion`, profile alignment, output parsing). The last big pillar B piece.
-2. **MCP shim** (`src/pac-copilot-kit-mcp/`), then `ci/` and `samples/` per design §11.
+**Done 2026-08-16, pillar B pipeline:** `Invoke-PckCopilotPipeline` with the pac layer under it: `Invoke-PckPacCommand` (single pac funnel, sensitive-argument redaction proven by an adversarial test against a real failing executable), `Assert-PckPacVersion` and `Assert-PckProfileAligned` (both parsers built against pac 2.10.1 output shapes verified live; the verification machine itself was a live drift specimen), `Test-PckAgentWorkspace` lint, temporary CI profile lifecycle, `-WhatIf` as the plan surface. Red-first correction along the way: Power Fx quotes are invisible to YAML, so the colon-space lint flags any non-YAML-quoted `=` value. Exit codes consolidated (see design log). War story 6. Suite: 104 unit + 4 live. README updated to shipped reality.
+
+1. **MCP shim** (`src/pac-copilot-kit-mcp/`): Node 20, stdio, seven verbs shelling to the module. The last v0.1 component.
+2. **`ci/` and `samples/`** recipes per design §11, then the Gallery publish decision point (§12.6 says manual).
+3. **Live pipeline run:** `Invoke-PckCopilotPipeline` has passed unit tests only; a live run needs a pac copilot workspace, which means `pac copilot init` against the Workbench environment or the owner's existing workspace.
 3. **Deferred within `New-PckKnowledgeSource`:** the optional custom-table create from §7.1. Needs a parameter-shape decision (how callers specify columns) before it can be built; the cmdlet targets existing tables meanwhile.
 4. **Open question for the blog:** war story 1's discriminator. The failing-versus-accepting view difference is unidentified; whoever finds it gets a good article section. Not a blocker for the kit, since attempt-and-translate handles both outcomes.
 

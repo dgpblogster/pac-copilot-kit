@@ -11,6 +11,7 @@
         'Enable-PckDataverseSearch'
         'Export-PckSolutionBackup'
         'Get-PckAgentInfo'
+        'Invoke-PckCopilotPipeline'
         'New-PckKnowledgeSource'
         'Wait-PckDataverseSearchReady'
     )
