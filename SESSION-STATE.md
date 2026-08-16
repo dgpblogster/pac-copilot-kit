@@ -75,9 +75,19 @@ Nothing blocks code. The last batch: §7 cmdlet names as proposed with the `Pck`
 
 **Done 2026-08-16, CI recipes:** `ci/github-actions/deploy-agent.yml` and `ci/azure-pipelines/deploy-agent.yml` (plan-then-deploy; the kit's CI mode removes the who-am-i and profile plumbing; Azure DevOps uses only the Build Tools extension's Tool Installer task), plus `ci/README.md` with variable wiring, typed-failure reading, and the pre-release from-source install variant. Syntax-validated; honestly marked as not yet run end to end in hosted CI, which needs the Gallery publish and a service principal. Also done the same day: the guard-to-guardrail terminology sweep (owner decision; tiers are preflight checks and error translators) and the MCP install documentation (README section plus docs/mcp-clients.md).
 
-1. **Release mechanics (owner):** Gallery publish is manual per §12.6; npm publish for the MCP server; both need the owner's accounts. First hosted CI run after the Gallery publish, recorded in `ci/README.md`.
-2. **Repo-public flip (owner, gated):** when the two source articles publish.
-3. **Deferred, unchanged:** table-create half of `New-PckKnowledgeSource` (parameter shape), `Test-PckCopilotAgent` (v0.2, deployment smoke test shape), war story 1 discriminator (blog material), `docs/quickstart.md`.
+**Decided 2026-08-16: everything waits for the articles.** No package publishes while the repo is private (packages would expose the code publicly with 404 links, inconsistent with the front-running rationale). Both packages are prepped and validated: `Publish-Module -WhatIf` clean, `npm pack` clean with README and LICENSE, manifest at 0.1.0 exporting all eight cmdlets.
+
+### Launch-day runbook (run top to bottom once articles 08 and 09 are live)
+
+1. **Flip the repo public** (owner or AI with gh): `gh repo edit dgpblogster/pac-copilot-kit --visibility public --accept-visibility-change-consequences`. Content has been leak-checked every commit; no cleanup needed.
+2. **PowerShell Gallery** (owner's terminal, key never through chat): sign in at powershellgallery.com with a Microsoft account, Account, API Keys, create a key scoped to `PacCopilotKit` with push permission. Then: `Publish-Module -Path C:\AL\pac-copilot-kit\src\PacCopilotKit -NuGetApiKey '<key>'`. Verify: `Find-Module PacCopilotKit`.
+3. **npm** (owner's terminal): `npm login` (browser flow), then from `src/pac-copilot-kit-mcp`: `npm run build; npm publish`. Verify: `npm view pac-copilot-kit-mcp`.
+4. **Post-publish sweep** (AI): switch `samples/mcp-config` and `docs/mcp-clients.md` to the `npx -y pac-copilot-kit-mcp` form, update the README status line, drop the pre-release install variant from `ci/README.md`, cut `[0.1.0]` in CHANGELOG, tag `v0.1.0`, create the GitHub release.
+5. **First hosted CI run** (owner provides an SPN with Workbench access): run the GitHub Actions recipe for real; record the outcome in `ci/README.md` per its honesty note.
+
+### After launch, deferred unchanged
+
+Table-create half of `New-PckKnowledgeSource` (parameter shape), `Test-PckCopilotAgent` (v0.2, deployment smoke test shape), war story 1 discriminator (blog material), `docs/quickstart.md`.
 3. **Deferred within `New-PckKnowledgeSource`:** the optional custom-table create from §7.1. Needs a parameter-shape decision (how callers specify columns) before it can be built; the cmdlet targets existing tables meanwhile.
 4. **Open question for the blog:** war story 1's discriminator. The failing-versus-accepting view difference is unidentified; whoever finds it gets a good article section. Not a blocker for the kit, since attempt-and-translate handles both outcomes.
 
