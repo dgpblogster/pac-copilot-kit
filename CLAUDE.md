@@ -27,7 +27,7 @@ Four files, four jobs. Do not conflate them.
 | PS module | `PacCopilotKit` (cmdlet noun prefix `Pck`; env var prefix `PCK_`) |
 | MCP server (npm) | `pac-copilot-kit-mcp` |
 | Local workspace | `C:\AL\pac-copilot-kit` *(renamed; not yet a git repository, see canon 12)* |
-| Public home | https://github.com/dgpblogster/pac-copilot-kit *(created; private until the two source articles publish, then public)* |
+| Public home | https://github.com/dgpblogster/pac-copilot-kit *(public, released; v0.1.0 on the PowerShell Gallery and npm)* |
 | License | MIT |
 | Owner | Mariano Gomez Bent |
 | Status | all §12 design questions closed 2026-08-15; v0.1 build in progress |

@@ -79,9 +79,9 @@ Nothing blocks code. The last batch: §7 cmdlet names as proposed with the `Pck`
 
 ### Remaining
 
-1. **Repo-public flip (owner, still gated on the articles):** the packages are public but the repo, with the design doc and war-stories narrative, stays private until articles 08 and 09 publish. Package links to GitHub 404 for the public until then, a known and accepted state.
-2. **First hosted CI run** (owner provides an SPN with access to a target environment): run the GitHub Actions recipe for real; record the outcome in `ci/README.md` per its honesty note.
-3. **Post-10 article draft** exists in the private drafts folder and already announces the packages; it publishes after 08 and 09.
+1. **First hosted CI run** (owner provides an SPN with access to a target environment): run the GitHub Actions recipe for real; record the outcome in `ci/README.md` per its honesty note.
+2. **The articles** (owner): 08 and 09 publish on the blog, then post-10, whose draft already announces the release. The repo went public on 2026-08-16 by the owner's decision, ahead of all three; the front-running protection was theirs to waive and they waived it.
+3. **v0.2 candidates, unchanged:** table-create half of `New-PckKnowledgeSource`, `Test-PckCopilotAgent` as a deployment smoke test, the war story 1 discriminator, `docs/quickstart.md`.
 
 ### After launch, deferred unchanged
 
