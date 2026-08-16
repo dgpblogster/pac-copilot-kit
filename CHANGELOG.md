@@ -6,6 +6,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] - 2026-08-16
+
+First release. `PacCopilotKit` 0.1.0 on the PowerShell Gallery; `pac-copilot-kit-mcp` 0.1.0 on npm, both under The Workbench Blog. Everything below this line shipped in it.
+
 ### Changed (war story 7 root cause, 2026-08-16)
 - War story 7 upgraded from symptom to root cause: `pac.launcher.exe` (v1.0.7, dated September 2019) discards exit codes; the versioned `pac.exe` underneath returns them honestly. A/B verified live; upstream issues #912 and #1027 linked; dotnet-tool install documented as the launcher-free path. `docs/war-stories.md`, `README.md` (launcher NOTE, "How it earned its scars" section with the open discriminator challenge, agent-section trust note), and `ci/README.md` updated. No code change: the funnel guardrail already covered both flavors.
 

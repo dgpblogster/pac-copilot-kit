@@ -75,15 +75,13 @@ Nothing blocks code. The last batch: §7 cmdlet names as proposed with the `Pck`
 
 **Done 2026-08-16, CI recipes:** `ci/github-actions/deploy-agent.yml` and `ci/azure-pipelines/deploy-agent.yml` (plan-then-deploy; the kit's CI mode removes the who-am-i and profile plumbing; Azure DevOps uses only the Build Tools extension's Tool Installer task), plus `ci/README.md` with variable wiring, typed-failure reading, and the pre-release from-source install variant. Syntax-validated; honestly marked as not yet run end to end in hosted CI, which needs the Gallery publish and a service principal. Also done the same day: the guard-to-guardrail terminology sweep (owner decision; tiers are preflight checks and error translators) and the MCP install documentation (README section plus docs/mcp-clients.md).
 
-**Decided 2026-08-16: everything waits for the articles.** No package publishes while the repo is private (packages would expose the code publicly with 404 links, inconsistent with the front-running rationale). Both packages are prepped and validated: `Publish-Module -WhatIf` clean, `npm pack` clean with README and LICENSE, manifest at 0.1.0 exporting all eight cmdlets.
+**Published 2026-08-16, by the owner, ahead of the articles:** `PacCopilotKit` 0.1.0 on the PowerShell Gallery (22:22 UTC) and `pac-copilot-kit-mcp` 0.1.0 on npm (22:44 UTC), both under the owner's new The Workbench Blog accounts. This supersedes the wait-for-the-articles sequencing by the owner's own hand. The Gallery artifact was verified byte-identical to HEAD (30 of 30 files). The post-publish sweep is done: samples and docs on the `npx` form, README status released, CHANGELOG `[0.1.0]` cut, `v0.1.0` tagged with a GitHub release. **Any future module change now requires a version bump past 0.1.0 before republish.**
 
-### Launch-day runbook (run top to bottom once articles 08 and 09 are live)
+### Remaining
 
-1. **Flip the repo public** (owner or AI with gh): `gh repo edit dgpblogster/pac-copilot-kit --visibility public --accept-visibility-change-consequences`. Content has been leak-checked every commit; no cleanup needed.
-2. **PowerShell Gallery** (owner's terminal, key never through chat): sign in at powershellgallery.com with a Microsoft account, Account, API Keys, create a key scoped to `PacCopilotKit` with push permission. Then: `Publish-Module -Path C:\AL\pac-copilot-kit\src\PacCopilotKit -NuGetApiKey '<key>'`. Verify: `Find-Module PacCopilotKit`.
-3. **npm** (owner's terminal): `npm login` (browser flow), then from `src/pac-copilot-kit-mcp`: `npm run build; npm publish`. Verify: `npm view pac-copilot-kit-mcp`.
-4. **Post-publish sweep** (AI): switch `samples/mcp-config` and `docs/mcp-clients.md` to the `npx -y pac-copilot-kit-mcp` form, update the README status line, drop the pre-release install variant from `ci/README.md`, cut `[0.1.0]` in CHANGELOG, tag `v0.1.0`, create the GitHub release.
-5. **First hosted CI run** (owner provides an SPN with Workbench access): run the GitHub Actions recipe for real; record the outcome in `ci/README.md` per its honesty note.
+1. **Repo-public flip (owner, still gated on the articles):** the packages are public but the repo, with the design doc and war-stories narrative, stays private until articles 08 and 09 publish. Package links to GitHub 404 for the public until then, a known and accepted state.
+2. **First hosted CI run** (owner provides an SPN with access to a target environment): run the GitHub Actions recipe for real; record the outcome in `ci/README.md` per its honesty note.
+3. **Post-10 article draft** exists in the private drafts folder and already announces the packages; it publishes after 08 and 09.
 
 ### After launch, deferred unchanged
 

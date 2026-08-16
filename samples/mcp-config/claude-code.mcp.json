@@ -1,9 +1,9 @@
 {
-  "//": "Claude Code: save as .mcp.json at the repo root of the project that uses the kit. Until the npm package is published, point node at a built clone of pac-copilot-kit; afterward, replace command/args with: npx -y pac-copilot-kit-mcp",
+  "//": "Claude Code: save as .mcp.json at the repo root of the project that uses the kit. Requires the PacCopilotKit module: Install-Module PacCopilotKit",
   "mcpServers": {
     "pac-copilot-kit": {
-      "command": "node",
-      "args": ["C:/path/to/pac-copilot-kit/src/pac-copilot-kit-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "pac-copilot-kit-mcp"],
       "env": {
         "PCK_DEFAULT_ENVIRONMENT_ID": "00000000-0000-0000-0000-000000000000"
       }

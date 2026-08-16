@@ -2,7 +2,14 @@
 
 A paved-road toolkit for the Microsoft Copilot Studio agent lifecycle, built on the Power Platform CLI (`pac`) and the Dataverse Web API.
 
-> **Status: pre-release.** The design is settled and recorded in [docs/pac-copilot-kit-design.md](docs/pac-copilot-kit-design.md). The PowerShell module works from source today (`Import-Module ./src/PacCopilotKit/PacCopilotKit.psd1`) and its headline path has been proven against a live environment. The PowerShell Gallery publish and the MCP server are still ahead, so nothing is `Install-Module`-able just yet.
+> **Status: v0.1.0, released.** The module is on the [PowerShell Gallery](https://www.powershellgallery.com/packages/PacCopilotKit) and the MCP server is on [npm](https://www.npmjs.com/package/pac-copilot-kit-mcp). Two commands and you are running:
+>
+> ```powershell
+> Install-Module PacCopilotKit
+> npx -y pac-copilot-kit-mcp   # optional: the MCP door, for your AI agent
+> ```
+>
+> The full design, and every decision behind it, is recorded in [docs/pac-copilot-kit-design.md](docs/pac-copilot-kit-design.md).
 
 ## Why this kit exists
 
@@ -93,22 +100,17 @@ Then the live runs kept the honesty going. The very first live pipeline run was 
 
 The kit has two doors into the same engine. Humans get the PowerShell cmdlets; AI agents get `pac-copilot-kit-mcp`, a local MCP server that exposes the same guarded lifecycle as seven task-shaped verbs over stdio. Same guardrails, same typed refusals, same everything, because the server is a thin shim that shells to the module; nothing lives in it that the module does not enforce.
 
-Until the npm package ships, you build it from the clone, as follows:
+Two steps, as follows:
 
 ```powershell
 # 1. The module first; the server refuses to start without it
-git clone https://github.com/dgpblogster/pac-copilot-kit.git
-Import-Module ./pac-copilot-kit/src/PacCopilotKit/PacCopilotKit.psd1
+Install-Module PacCopilotKit
 Get-Command -Module PacCopilotKit          # eight cmdlets means you are in business
 
-# 2. Then the server (Node 20 or later)
-cd pac-copilot-kit/src/pac-copilot-kit-mcp
-npm install
-npm run build
-npm run smoke                              # handshake + seven tools advertised
+# 2. Then wire the server into your client; no install step, npx handles it
 ```
 
-Then wire it into your client with the matching config from [samples/mcp-config](samples/mcp-config): `.mcp.json` at the project root for Claude Code, `.vscode/mcp.json` for GitHub Copilot in VS Code, or `~/.codex/config.toml` for Codex CLI. Each sample points `node` at the built `dist/index.js`; set `PCK_DEFAULT_ENVIRONMENT_ID` in the `env` block and you are done. When the npm package publishes, the command line shrinks to `npx -y pac-copilot-kit-mcp` and nothing else changes.
+The wiring is one config file, and [samples/mcp-config](samples/mcp-config) has a copy-paste version for each client: `.mcp.json` at the project root for Claude Code, `.vscode/mcp.json` for GitHub Copilot in VS Code, or `~/.codex/config.toml` for Codex CLI. Each one launches `npx -y pac-copilot-kit-mcp`; set `PCK_DEFAULT_ENVIRONMENT_ID` in the `env` block and you are done. Contributors working from a clone can point `node` at a built `dist/index.js` instead; [docs/mcp-clients.md](docs/mcp-clients.md) covers that variant.
 
 A few things to note here. On startup the server verifies pwsh 7.4+, the module, and the `pac` CLI before advertising a single tool, so a broken prerequisite fails loudly at launch instead of surfacing as a mysterious tool error later. The seven verbs are `plan-deployment`, `run-pipeline`, `add-knowledge-source`, `wait-for-search`, `pull-agent`, `backup-solution`, and `explain-failure`; the first is the dry run, and the last turns any typed refusal into plain what-happened-and-what-to-do prose without another environment round trip. In practice you just ask your agent for the outcome ("plan a deployment of the agent workspace", "wire the case resolutions table into the agent as knowledge") and it picks the verb; the guardrails do the rest. The full walkthrough, including every environment variable and what each client looks like when it works, lives in [docs/mcp-clients.md](docs/mcp-clients.md).
 
@@ -118,7 +120,7 @@ A few things to note here. On startup the server verifies pwsh 7.4+, the module,
 
 This section is for you, not for your human. The kit was designed to be driven by agents as much as by people, and these are the rules that make that work.
 
-1. **Install from source for now.** Clone the repo, then `Import-Module ./src/PacCopilotKit/PacCopilotKit.psd1`. Verify with `Get-Command -Module PacCopilotKit`. If your host speaks MCP, build the shim (`cd src/pac-copilot-kit-mcp; npm install; npm run build`) and wire it up with a config from [samples/mcp-config](samples/mcp-config); it serves seven task-shaped verbs over stdio, and its `explain-failure` verb turns any typed refusal into what-happened-and-what-to-do prose. The PowerShell Gallery and npm publishes are still ahead.
+1. **Install:** `Install-Module PacCopilotKit`, then verify with `Get-Command -Module PacCopilotKit` (eight cmdlets). If your host speaks MCP, wire up `npx -y pac-copilot-kit-mcp` with a config from [samples/mcp-config](samples/mcp-config); it serves seven task-shaped verbs over stdio, and its `explain-failure` verb turns any typed refusal into what-happened-and-what-to-do prose.
 2. **Check the floor before anything else:** PowerShell 7.4+, `pac` CLI 2.10.1+, and one token source for the Web API side: a signed-in Azure CLI, a `PCK_ACCESS_TOKEN` variable, the `Az.Accounts` module, or the three `PCK_SPN_*` variables in CI. The kit tells you exactly which one it wanted if none is available.
 3. **The environment id is always explicit.** Set `PCK_DEFAULT_ENVIRONMENT_ID` or pass `-EnvironmentId` on every connect. Do not attempt to infer the environment from the `pac` auth profile; the kit refuses to, and so should you.
 4. **Ask for `-Json` and parse stdout only.** Every public cmdlet emits one well-formed JSON object with `-Json`. Warnings and human commentary travel separately; never scrape them.
@@ -131,7 +133,7 @@ This section is for you, not for your human. The kit was designed to be driven b
 
 - PowerShell 7.4 or later
 - Power Platform CLI 2.10.1 or later
-- Node 20 LTS, for the MCP server only, once it ships
+- Node 20 or later, for the MCP server only
 
 ## Documentation
 

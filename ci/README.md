@@ -23,18 +23,4 @@ The MSI-installed `pac` reaches your script through a launcher that discards exi
 
 The kit's exit codes are the diagnostic contract: **10 through 19** mean a preflight check refused (the environment or inputs are misconfigured; the log names exactly which condition, fix that and only that), **20** means a known-broken platform route (the message names the working alternatives), **1** is an ordinary operational failure. A refusal will fail the step; that is the design working, not the pipeline flaking.
 
-## Until the PowerShell Gallery publish
-
-`Install-Module PacCopilotKit` works once the module is published. Before that, replace the install step with a clone-and-import:
-
-```yaml
-- name: Install PacCopilotKit (pre-release, from source)
-  shell: pwsh
-  run: |
-    git clone --depth 1 https://github.com/dgpblogster/pac-copilot-kit.git $env:RUNNER_TEMP/pck
-    Import-Module $env:RUNNER_TEMP/pck/src/PacCopilotKit/PacCopilotKit.psd1
-```
-
-(Azure DevOps: same idea, clone into `$(Agent.TempDirectory)` and import from there. Note the import then has to happen in every later script step, since each step is a fresh shell; with `Install-Module`, `Import-Module PacCopilotKit` resolves anywhere.)
-
-**Honesty note:** these recipes are authored against the live-proven pipeline cmdlet, but they have not themselves run end to end in hosted CI, because that requires the Gallery publish and a service principal. First post-publish run gets recorded here, and anything it corrects gets corrected loudly.
+**Honesty note:** these recipes are authored against the live-proven pipeline cmdlet and the published Gallery module, but they have not themselves run end to end in hosted CI yet, which requires a service principal with access to a target environment. The first hosted run gets recorded here, and anything it corrects gets corrected loudly.

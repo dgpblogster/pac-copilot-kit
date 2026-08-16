@@ -12,27 +12,23 @@ The MCP server is the kit's second door. The PowerShell module is the engine and
 | The `PacCopilotKit` module | The server refuses to start without it |
 | A Web API token source | A signed-in Azure CLI (`az login`), `PCK_ACCESS_TOKEN`, `Az.Accounts`, or the three `PCK_SPN_*` variables in CI |
 
-## Build from source
-
-Until the npm package publishes, build from the clone:
+## Install
 
 ```powershell
-git clone https://github.com/dgpblogster/pac-copilot-kit.git
-cd pac-copilot-kit/src/pac-copilot-kit-mcp
-npm install
-npm run build
-npm run smoke        # handshake, seven tools advertised, local reasoning check
+Install-Module PacCopilotKit     # the engine; the server refuses to start without it
 ```
 
-The smoke test passing means the server starts, survives its own preflight, and advertises all seven verbs. After the npm publish, this whole section becomes `npx -y pac-copilot-kit-mcp` in the client config and nothing else changes.
+The server itself needs no install step: every client config launches it with `npx -y pac-copilot-kit-mcp`, which fetches and runs the published package.
+
+Contributors working from a clone build it instead (`cd src/pac-copilot-kit-mcp; npm install; npm run build; npm run smoke`) and point their client at `node <clone>/src/pac-copilot-kit-mcp/dist/index.js`; the repo-local module is picked up automatically, or set `PCK_MODULE_PATH`.
 
 ## Wire up your client
 
-Copy the matching sample from [samples/mcp-config](../samples/mcp-config) and adjust the path and environment id.
+Copy the matching sample from [samples/mcp-config](../samples/mcp-config) and set your environment id.
 
 **Claude Code**: `.mcp.json` at the root of the project where you work on the agent. **VS Code (GitHub Copilot)**: `.vscode/mcp.json` in the workspace. **Codex CLI**: merge into `~/.codex/config.toml`.
 
-All three carry the same two essentials: the command (`node <clone>/src/pac-copilot-kit-mcp/dist/index.js`) and `PCK_DEFAULT_ENVIRONMENT_ID` in the `env` block. Everything else is optional.
+All three carry the same two essentials: the launcher (`npx -y pac-copilot-kit-mcp`) and `PCK_DEFAULT_ENVIRONMENT_ID` in the `env` block. Everything else is optional.
 
 ## Environment variables the server understands
 
