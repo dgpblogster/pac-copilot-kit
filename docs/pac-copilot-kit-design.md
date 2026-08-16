@@ -13,7 +13,7 @@ Working design for a paved-road toolkit around Microsoft Power Platform CLI (`pa
 
 The first pass of this document was written from the design conversation alone. It was then reconciled against the two private source articles that record what the POC actually proved: one on adding Dataverse knowledge sources with the Web API, one on real ALM for Copilot Studio agents. Those drafts are the authority on platform behavior; this document is not.
 
-Three statements in the first pass were wrong or incomplete and are corrected below: the `savedquery` guard behavior (§6.2), the botcomponent attachment relationship (§6.3), and the Web API token source (§5, now open question §12.8). Several guards the articles prove necessary were missing entirely and are added (§6.1, §6.2). The purpose and scope are restated around two pillars (§1), which reopens the v0.1 scope signed off earlier the same day (§12.1, §12.9).
+Three statements in the first pass were wrong or incomplete and are corrected below: the `savedquery` guardrail behavior (§6.2), the botcomponent attachment relationship (§6.3), and the Web API token source (§5, now open question §12.8). Several guardrails the articles prove necessary were missing entirely and are added (§6.1, §6.2). The purpose and scope are restated around two pillars (§1), which reopens the v0.1 scope signed off earlier the same day (§12.1, §12.9).
 
 ---
 
@@ -50,7 +50,7 @@ Explicit rationale for building this and not something else:
 
 Two boundaries that follow from pillar A and are worth stating before anyone widens them:
 
-- **The kit works around the `pac` gap, it does not close it.** `pac copilot pack` still rejects Dataverse knowledge YAML. Nothing upstream changed. If a future `pac` release grows a real code path, the kit's job here shrinks to guards.
+- **The kit works around the `pac` gap, it does not close it.** `pac copilot pack` still rejects Dataverse knowledge YAML. Nothing upstream changed. If a future `pac` release grows a real code path, the kit's job here shrinks to guardrails.
 - **Creating a knowledge source and grounding on one are different chains.** The creation chain is fully solvable through the Web API. The grounding chain has preconditions of its own (§6.1, §6.2), and one of them, find columns on the Quick Find view, has no Web API route at all (§6.2).
 
 ## 3. Naming
@@ -83,7 +83,7 @@ Two components, one engine:
 │  PowerShell module (the engine)                            │
 │  PacCopilotKit                                             │
 │  ├─ Public/  exported cmdlets (Verb-Pck<Noun>)             │
-│  └─ Private/ Invoke-PckDataverseRequest, guards, helpers   │
+│  └─ Private/ Invoke-PckDataverseRequest, guardrails, helpers   │
 └───────────────┬────────────────────────────────────────────┘
                 │
                 ▼
@@ -113,35 +113,35 @@ Rationale for the split: the PS module is the source of truth and testable in is
 
    That click governs **export fidelity**. A forward deployment never asks an environment what belongs in the solution, so the click never gates it. This is the same argument that makes script-created knowledge sources immune to the documented disappearance, generalized to the whole pipeline. Any feature that promotes an exported zip to source of truth reintroduces a manual precondition and does not belong in the kit.
 
-## 6. Guard funnel
+## 6. Guardrail funnel
 
-Two categories of guard. Every public cmdlet uses both.
+Two categories of guardrail. Every public cmdlet uses both.
 
-**Implementation status (2026-08-16).** Shipped as guard files: `Assert-PckPacVersion`, `Assert-PckProfileAligned`, `Assert-PckSolutionExists`, `Assert-PckAgentHarness`, `Assert-PckAgentAuthMode`, `Convert-PckSavedQueryFetchXmlError`. Shipped with a different shape than first sketched: the pwsh floor rides `#Requires -Version 7.4` plus the MCP startup preflight rather than a guard file; the SPN-completeness check lives inside `Get-PckAccessToken` (exit 11); the workspace-root rule lives in `Resolve-PckOutputPath` (exit 17); the search-enabled check is a reported warning in `New-PckKnowledgeSource` rather than a refusal, since creation is valid before enablement and readiness is `Wait-PckDataverseSearchReady`'s job. Not yet built: the metadata-PATCH promotion, the `contains()` refusal, the entity-set plural fallback wiring, `Get-PckFlowId`, and the `pac org fetch` reroute; their rows below are design targets.
+**Implementation status (2026-08-16).** Shipped as guardrail files: `Assert-PckPacVersion`, `Assert-PckProfileAligned`, `Assert-PckSolutionExists`, `Assert-PckAgentHarness`, `Assert-PckAgentAuthMode`, `Convert-PckSavedQueryFetchXmlError`. Shipped with a different shape than first sketched: the pwsh floor rides `#Requires -Version 7.4` plus the MCP startup preflight rather than a guardrail file; the SPN-completeness check lives inside `Get-PckAccessToken` (exit 11); the workspace-root rule lives in `Resolve-PckOutputPath` (exit 17); the search-enabled check is a reported warning in `New-PckKnowledgeSource` rather than a refusal, since creation is valid before enablement and readiness is `Wait-PckDataverseSearchReady`'s job. Not yet built: the metadata-PATCH promotion, the `contains()` refusal, the entity-set plural fallback wiring, `Get-PckFlowId`, and the `pac org fetch` reroute; their rows below are design targets.
 
-### 6.1 Preflight guards (refuse to run)
+### 6.1 Preflight checks (refuse to run)
 
-Called at the top of every public cmdlet, in `Private/Guards/`:
+Called at the top of every public cmdlet, in `Private/Guardrails/`:
 
-| Guard | Refuses the call when |
+| Guardrail | Refuses the call when |
 |---|---|
 | `Assert-PckPacVersion` | The pac banner version is missing, unreadable, or older than the tested floor (2.10.1). Banner shape verified live (war story 6). |
 | `Assert-PckProfileAligned` | The **active** `pac auth` profile's `pac org who` output does not match `-EnvironmentId` (or the org URL host). Fixes the specific bug found in the POC where another workspace re-pointed the profile. Output shape verified live (war story 6). |
 | `Assert-PckSolutionExists` | `-SolutionName` not present in the target environment, when the operation needs it (war story 5). |
-| `Assert-PckAgentHarness` | Target agent is not standard harness. Read `GET /bots?$select=name,schemaname,template`: a `default-*` template proceeds, `cliagent-1.0.0` refuses. This is the highest-value guard in the table, because the failure it prevents is silent in both directions: a knowledge component created against the newer experience **displays in the Knowledge panel**, since the panel reads the same component table, while the runtime never queries it. The agent answers from general model knowledge and states it has no documents. No error anywhere. |
+| `Assert-PckAgentHarness` | Target agent is not standard harness. Read `GET /bots?$select=name,schemaname,template`: a `default-*` template proceeds, `cliagent-1.0.0` refuses. This is the highest-value guardrail in the table, because the failure it prevents is silent in both directions: a knowledge component created against the newer experience **displays in the Knowledge panel**, since the panel reads the same component table, while the runtime never queries it. The agent answers from general model knowledge and states it has no documents. No error anywhere. |
 | `Assert-PckAgentAuthMode` | Agent's end-user authentication is not "Authenticate with Microsoft". Dataverse knowledge sources ride the end user's identity, so every other mode never searches them. Documented, and fatal to grounding. Storage shape verified live 2026-08-15: `bot.authenticationmode` picklist, 0 Unspecified, 1 None, 2 Integrated (the only mode that grounds), 3 Custom Entra ID, 4 Generic OAuth2 (war story 3). |
 
 As built, the pipeline additionally guards the pac funnel itself: `Invoke-PckPacCommand` does not believe a zero exit code when the output carries an `Error:` line, because pac exits 0 on errors it prints (war story 7, observed three times live).
 
-Preflight guards fail with a distinct exit code range (`10..19`) so CI can distinguish "environment misconfigured" from "operation failed".
+Preflight checks fail with a distinct exit code range (`10..19`) so CI can distinguish "environment misconfigured" from "operation failed".
 
-### 6.2 Wrap-and-translate guards (attempt, catch a known signature, rewrite)
+### 6.2 Error translators (attempt, catch a known signature, rewrite)
 
-All inside `Invoke-PckDataverseRequest`. The public cmdlets never see these codes directly. Each guard corresponds to a war story from the private article inventory that `docs/war-stories.md` will publish in sanitized form:
+All inside `Invoke-PckDataverseRequest`. The public cmdlets never see these codes directly. Each guardrail corresponds to a war story from the private article inventory that `docs/war-stories.md` will publish in sanitized form:
 
-| Symptom | Guard behavior |
+| Symptom | Guardrail behavior |
 |---|---|
-| `savedquery` PATCH of `fetchxml` returns `0x80040216` | **Corrected twice; current as of 2026-08-15.** First correction (2026-08-14): the claimed `layoutxml`-first two-call translation was never proven and was withdrawn. Second correction (2026-08-15, third-org live verification): the failure is broad but not universal. Most Quick Find views fail (standard and elastic, custom and system, search-synced or not) while a minority accept the same call (`privilegecheckerrun`, virtual `aaduser`); the discriminator is unidentified. The guard is therefore a **response translator**, `Convert-PckSavedQueryFetchXmlError`: attempt the call, and when the `0x80040216` signature comes back on a savedquery fetchxml route, throw the war story (exit 20) naming solution surgery (§7 `Edit-PckSolutionXml`) and the portal path. Full verification log in war story 1. |
+| `savedquery` PATCH of `fetchxml` returns `0x80040216` | **Corrected twice; current as of 2026-08-15.** First correction (2026-08-14): the claimed `layoutxml`-first two-call translation was never proven and was withdrawn. Second correction (2026-08-15, third-org live verification): the failure is broad but not universal. Most Quick Find views fail (standard and elastic, custom and system, search-synced or not) while a minority accept the same call (`privilegecheckerrun`, virtual `aaduser`); the discriminator is unidentified. The guardrail is therefore a **error translator**, `Convert-PckSavedQueryFetchXmlError`: attempt the call, and when the `0x80040216` signature comes back on a savedquery fetchxml route, throw the war story (exit 20) naming solution surgery (§7 `Edit-PckSolutionXml`) and the portal path. Full verification log in war story 1. |
 | Find columns are not the ones you configured | Not an error, a silent grounding failure, and the reason the row above matters. Dataverse search indexes the columns configured as **find columns on the table's Quick Find view**, and a fresh custom table's Quick Find view carries exactly one, the primary name. Every other column is invisible to search and therefore to the agent. The kit inspects find columns during preflight and refuses to report a source as grounded when the columns it searches are absent. |
 | Metadata entity PATCH fails (metadata rejects PATCH entirely) | Auto-promote to full-document PUT with `MSCRM.MergeLabels: true` header and a follow-up `PublishXml` call. Omitted properties reset to their defaults, so the full document has to be read, modified, and returned whole. This is the **recovery** path, not the plan: see the `SyncToExternalSearchIndex` row below. |
 | `SyncToExternalSearchIndex` needed on a table that already exists | The metadata PUT ceremony above is the only way to add it later, which is exactly why the kit sets it in the original `EntityDefinitions` create payload. Retrofit is supported and is never the happy path. |
@@ -153,9 +153,9 @@ All inside `Invoke-PckDataverseRequest`. The public cmdlets never see these code
 | `InvokeFlowAction.flowId` confusion (workflow.resourceid vs workflowid) | Helper `Get-PckFlowId` resolves the correct identifier and returns both, with the resource id marked as the one to embed. Embedding the wrong one imports cleanly and fails only when a user triggers the action. |
 | Flow created by the obvious tooling never appears in the solution | Create through the Dataverse `workflow` endpoint carrying the solution header. After any solution round-trip, verify the flow came back **activated**; the import round-trips everything else in the solution and activation state is worth checking rather than assuming. |
 | `pac org fetch` StackOverflowException on non-aggregate `incident` queries | Detect the shape, route through Web API instead of `pac org fetch`. |
-| Power Fx string in a `.mcs.yml` containing a colon followed by a space | Offline schema check of every `.mcs.yml` before pack, as the first step of the pipeline. The file parses wrong rather than failing, and surfaces as strange runtime behavior instead of an error, so the import will not catch it. Cheapest guard in the kit and the highest-value habit in the loop. |
+| Power Fx string in a `.mcs.yml` containing a colon followed by a space | Offline schema check of every `.mcs.yml` before pack, as the first step of the pipeline. The file parses wrong rather than failing, and surfaces as strange runtime behavior instead of an error, so the import will not catch it. Cheapest guardrail in the kit and the highest-value habit in the loop. |
 
-The **single funnel** matters: retrofitting these guards later would require touching every cmdlet. Committing to it now means each war story is fixed in exactly one place.
+The **single funnel** matters: retrofitting these guardrails later would require touching every cmdlet. Committing to it now means each war story is fixed in exactly one place.
 
 ### 6.3 Record shapes the kit encodes
 
@@ -176,11 +176,11 @@ Two attachment facts that are easy to get wrong, and one of which the first pass
 - `schemaname` follows the convention `<botSchemaName>.knowledge.<componentName>`, where the bot schemaname must be **read** from `GET /bots`, never constructed. Agents created in the newer experience carry a random suffix in theirs.
 - Deleting the `componenttype` 16 botcomponent **cascade-deletes the associated `dvtablesearch` and its `dvtablesearchentity` children** (observed live 2026-08-16, one org). Cleanup code should treat 404 on the children as already-done rather than as failure.
 
-### 6.4 Guard-authoring rule
+### 6.4 Guardrail-authoring rule
 
-New guard = one file under `Private/Guards/`, one Pester test proving the untranslated call fails and the translated call succeeds, one line in the war-stories reference doc. No guards without all three.
+New guardrail = one file under `Private/Guardrails/`, one Pester test proving the untranslated call fails and the translated call succeeds, one line in the war-stories reference doc. No guardrails without all three.
 
-For guards where no translated call exists (the `savedquery` case), the test proves the untranslated call fails and the guard refuses with the documented alternative rather than attempting it.
+For guardrails where no translated call exists (the `savedquery` case), the test proves the untranslated call fails and the guardrail refuses with the documented alternative rather than attempting it.
 
 ## 7. Public PS API surface
 
@@ -195,7 +195,7 @@ Task-oriented, not 1:1 with `pac` subcommands. Names signed off 2026-08-15 (§12
 | `New-PckKnowledgeSource` | The headline cmdlet. Owns the whole chain, not the four creates: preflight (harness, end-user auth mode, org search flag, solution exists), optional custom table create with `SyncToExternalSearchIndex` and `Format: TextArea` set at create time, then `dvtablesearch`, one `dvtablesearchentity` per table, the `componenttype` 16 `botcomponent` with a read-not-guessed schemaname, and the `botcomponent_dvtablesearch` association. Solution header on every call, non-optional. Reports find columns as a precondition it cannot satisfy (§6.2) and hands off rather than claiming success. |
 | `Enable-PckDataverseSearch` | Set `isexternalsearchindexenabled` on the organization record. Separate cmdlet because it is an org-wide, once-per-environment act with a multi-hour tail, not a step inside a deployment. |
 | `Wait-PckDataverseSearchReady` | Poll `POST /api/search/v1.0/query` (never `/status`) until seeded rows become searchable. Default timeout sized in hours. |
-| `Get-PckAgentInfo` | Read `template`, `schemaname`, and end-user auth mode for a bot. Backs the harness and auth-mode guards, and returns the schemaname the component create needs. |
+| `Get-PckAgentInfo` | Read `template`, `schemaname`, and end-user auth mode for a bot. Backs the harness and auth-mode guardrails, and returns the schemaname the component create needs. |
 | `New-PckCopilotComponent` | Lower-level solution-aware Web API create for botcomponent types beyond knowledge sources. Kept as the general primitive under `New-PckKnowledgeSource`. |
 
 ### 7.2 Pillar B, paved road
@@ -207,7 +207,7 @@ Task-oriented, not 1:1 with `pac` subcommands. Names signed off 2026-08-15 (§12
 | `Edit-PckSolutionXml` | Solution surgery: export, edit `customizations.xml`, repack, import. The automatable route for find columns and anything else the Web API refuses. **Refuses to touch agent components**, since editing those inside the solution is documented to break export and import. Ordinary Dataverse metadata (tables, columns, views) only. That distinction is the whole safety rule, so it is enforced rather than documented. |
 | `Test-PckSolutionCompleteness` | Enumerate the agent's botcomponents, knowledge sources, and environment variable definitions, diff against solution membership, and report what is missing. The programmatic answer to the add-required-objects click for anyone who does export as an artifact, and a useful assertion even on the forward path. |
 | `Publish-PckCopilotAgent` | Publish only (draft to live), separate from import for iterate loops. |
-| `Sync-PckCopilotAgent` | `pac copilot pull` from the target environment into a local workspace, with profile guard. |
+| `Sync-PckCopilotAgent` | `pac copilot pull` from the target environment into a local workspace, with profile guardrail. |
 | `Export-PckSolutionBackup` | One call `POST /ExportSolution`, decode base64 zip, write to disk with timestamp suffix. A backup, explicitly not the source of truth (§5 rule 9). |
 | `Get-PckFlowId` | Resolve `workflow.resourceid` for a flow by display name or workflowid. |
 | `Get-PckPostDeployChecklist` | Emit the structured list of things the solution does not carry and a human must do per environment: reconfigure user authentication, publish before sharing, redeploy channels, re-share, Application Insights settings, Direct Line and web channel security, and repoint environment variable values. Not automation, and deliberately not silence. |
@@ -243,15 +243,15 @@ The MCP surface is deliberately narrower than the cmdlet surface. AI agents pick
 
 | MCP tool | Wraps | What the agent asks for |
 |---|---|---|
-| `plan-deployment` | `Invoke-PckCopilotPipeline -WhatIf` | "What would happen if I deployed this now?" Returns preflight results, diff summary, refuses with reasons if guards would trip. |
+| `plan-deployment` | `Invoke-PckCopilotPipeline -WhatIf` | "What would happen if I deployed this now?" Returns preflight results, diff summary, refuses with reasons if guardrails would trip. |
 | `run-pipeline` | `Invoke-PckCopilotPipeline` | Full deploy loop against the pinned environment. |
 | `backup-solution` | `Export-PckSolutionBackup` | One-call solution export to disk. |
-| `pull-agent` | `Sync-PckCopilotAgent` | Pull the live agent YAML into the workspace, guard-checked. |
+| `pull-agent` | `Sync-PckCopilotAgent` | Pull the live agent YAML into the workspace, guardrail-checked. |
 | `add-knowledge-source` | `New-PckKnowledgeSource` | Wire a Dataverse knowledge source into the agent: preflight, create the four records in-solution, verify. The pillar A verb. |
 | `wait-for-search` | `Wait-PckDataverseSearchReady` | Block until knowledge grounding is live after seeding. |
 | `explain-failure` | Local reasoner over the last cmdlet's structured error output | Turn a war-story exit code into a plain-English "here is what happened and how to fix it" reply, without another Dataverse round-trip. |
 
-`explain-failure` is the differentiator. It turns the guard funnel's structured errors into agent-consumable prose, and it is the one MCP tool with no PS cmdlet on the other side.
+`explain-failure` is the differentiator. It turns the guardrail funnel's structured errors into agent-consumable prose, and it is the one MCP tool with no PS cmdlet on the other side.
 
 The gap flagged on 2026-08-14 (no pillar A verb) closed on 2026-08-15 with `add-knowledge-source`; see §12.10.
 
@@ -381,7 +381,7 @@ Nothing on that list makes CI a dead end. The CLI was designed for CI and docume
 
 ## 11. Repo layout
 
-As built on 2026-08-16. Differences from the first sketch: response translators are `Convert-Pck*.ps1` rather than `Wrap-Pck*.ps1`; MCP tests live inside the package; `en-US/` waits for MAML help; comment-based help serves meanwhile.
+As built on 2026-08-16. Differences from the first sketch: error translators are `Convert-Pck*.ps1` rather than `Wrap-Pck*.ps1`; MCP tests live inside the package; `en-US/` waits for MAML help; comment-based help serves meanwhile.
 
 ```
 pac-copilot-kit/
@@ -391,7 +391,7 @@ pac-copilot-kit/
 │   │   ├── PacCopilotKit.psm1            # error types + loader
 │   │   ├── Public/                       # one .ps1 per exported cmdlet (8 shipped)
 │   │   └── Private/
-│   │       ├── Guards/                   # Assert-Pck*.ps1 + Convert-Pck*.ps1
+│   │       ├── Guardrails/                   # Assert-Pck*.ps1 + Convert-Pck*.ps1
 │   │       ├── Invoke-PckDataverseRequest.ps1   # Web API funnel
 │   │       ├── Invoke-PckPacCommand.ps1         # pac funnel
 │   │       └── EntitySetPluralOverrides.psd1
@@ -412,7 +412,7 @@ pac-copilot-kit/
 │   └── azure-pipelines/example.yml
 ├── docs/
 │   ├── pac-copilot-kit-design.md         # this file
-│   ├── war-stories.md                    # 7 stories, one per guard plus inventory
+│   ├── war-stories.md                    # 7 stories, one per guardrail plus inventory
 │   ├── quickstart.md                     # planned
 │   ├── ci-recipes.md                     # planned
 │   └── mcp-clients.md                    # planned
@@ -431,7 +431,7 @@ pac-copilot-kit/
 
 All closed as of 2026-08-15. Retained with their resolutions because the reasoning is the record.
 
-1. ~~**v0.1 scope.**~~ **Signed off 2026-08-14, then reopened the same day. See §12.9.** Original: `Invoke-PckCopilotPipeline` + `Export-PckSolutionBackup` + war-stories guards in `Invoke-PckDataverseRequest` + MCP shim from day one. That set is entirely pillar B plus a backup helper; it omits pillar A, which §1 now identifies as the reason anyone installs the kit.
+1. ~~**v0.1 scope.**~~ **Signed off 2026-08-14, then reopened the same day. See §12.9.** Original: `Invoke-PckCopilotPipeline` + `Export-PckSolutionBackup` + war-stories guardrails in `Invoke-PckDataverseRequest` + MCP shim from day one. That set is entirely pillar B plus a backup helper; it omits pillar A, which §1 now identifies as the reason anyone installs the kit.
 2. ~~**Public PS API sign-off.**~~ **Signed off 2026-08-15** as proposed in §7. The `Pck` prefix was re-examined against a `Pac` prefix and kept: `Pac` invites collision with any future first-party module and reads as Microsoft's own, which a kit built partly on unsupported record shapes must not. Aliases in the `Pac` spelling were considered and declined for the same reason.
 3. ~~**MCP verb set sign-off.**~~ **Signed off 2026-08-14.** §8.3 verbs locked (`plan-deployment`, `run-pipeline`, `backup-solution`, `pull-agent`, `wait-for-search`, `explain-failure`).
 4. ~~**PowerShell floor.**~~ **Signed off 2026-08-15:** 7.4 and later. Windows PowerShell 5.1 is out.
@@ -451,7 +451,7 @@ All closed as of 2026-08-15. Retained with their resolutions because the reasoni
    | Dev | First match wins: `PCK_ACCESS_TOKEN` if set, then `az account get-access-token --resource <org>` if `az` is on the path, then `Get-AzAccessToken` from `Az.Accounts` if that module is present, then a hard error naming all three. |
 
    The chain makes `az` an accepted path rather than a prerequisite. `Connect-PckPowerPlatform` still governs `pac` invocations; this decision covers the Web API funnel only, and the two remain deliberately independent.
-9. ~~**v0.1 rescope.**~~ **Signed off 2026-08-15: v0.1 grows to cover pillar A.** Scope is `New-PckKnowledgeSource` + `Wait-PckDataverseSearchReady` + `Enable-PckDataverseSearch` + `Get-PckAgentInfo` + `Invoke-PckCopilotPipeline` + `Export-PckSolutionBackup` + the guards in `Invoke-PckDataverseRequest` + the MCP shim. Rationale: shipping pillar B alone produces a competent tool with no reason to exist, since `pac` in a script step already does most of pillar B for anyone willing to write the script.
+9. ~~**v0.1 rescope.**~~ **Signed off 2026-08-15: v0.1 grows to cover pillar A.** Scope is `New-PckKnowledgeSource` + `Wait-PckDataverseSearchReady` + `Enable-PckDataverseSearch` + `Get-PckAgentInfo` + `Invoke-PckCopilotPipeline` + `Export-PckSolutionBackup` + the guardrails in `Invoke-PckDataverseRequest` + the MCP shim. Rationale: shipping pillar B alone produces a competent tool with no reason to exist, since `pac` in a script step already does most of pillar B for anyone willing to write the script.
 10. ~~**MCP verb for pillar A.**~~ **Signed off 2026-08-15:** `add-knowledge-source` added as the seventh verb. Canon 11 amended from six verbs to seven. Rationale: the capability nobody else has is the one an AI pair most needs a labeled verb for.
 
 ## 13. Non-goals
@@ -462,7 +462,7 @@ Written out so scope creep gets caught early.
 - **Not** a general Power Platform ALM tool. Focus is Copilot Studio agents plus the Dataverse artifacts they depend on. If a feature would apply equally to a canvas app, it does not belong here.
 - **Not** an eval harness. `Test-PckCopilotAgent` may exist later but v0.1 does not include it.
 - **Not** a hosted service. Local process, local auth profile, local SPN.
-- **Not** a `pac` replacement. Everything falls back to `pac` primitives; the kit is discipline and guards, not a reimplementation.
+- **Not** a `pac` replacement. Everything falls back to `pac` primitives; the kit is discipline and guardrails, not a reimplementation.
 
 ---
 
@@ -479,36 +479,38 @@ Written out so scope creep gets caught early.
 | 2026-08-14 | Include native VS Code MCP config in samples | User confirmation |
 | 2026-08-14 | Public home https://github.com/dgpblogster/pac-copilot-kit | User provided GitHub handle |
 | 2026-08-14 | Design captured here; v0.1 scope pending | This document |
-| 2026-08-14 | Guard funnel design (§6) signed off | User |
+| 2026-08-14 | Guardrail funnel design (§6) signed off | User |
 | 2026-08-14 | MCP verb set (§8.3) signed off | User |
-| 2026-08-14 | v0.1 scope signed off: pipeline + backup + guards + MCP shim | User |
+| 2026-08-14 | v0.1 scope signed off: pipeline + backup + guardrails + MCP shim | User |
 | 2026-08-14 | Design doc lives in `docs/` until repo creation, then moves to repo root | User |
 | 2026-08-14 | Purpose restated as two pillars: capability (Dataverse knowledge sources) and paved road (executable ALM). Pillar A is the reason to install, pillar B the reason to keep | User, in the reconciliation conversation |
 | 2026-08-14 | Claim fixed as "prescribed but not automatable" rather than "no ALM story". The stronger claim is defensible and survives Microsoft shipping a first-party agent task | Reconciliation against post-09 |
 | 2026-08-14 | Forward-from-source added as design rule §5.9. Makes add-required-objects a non-gate for the pipeline | Reconciliation against post-09 |
-| 2026-08-14 | `savedquery` guard corrected: no working Web API route exists, guard refuses instead of translating. Prior two-call claim withdrawn as unproven | Reconciliation against post-08 |
+| 2026-08-14 | `savedquery` guardrail corrected: no working Web API route exists, guardrail refuses instead of translating. Prior two-call claim withdrawn as unproven | Reconciliation against post-08 |
 | 2026-08-14 | Knowledge component attaches via `parentbotid`, not the `bot_botcomponent` N:N. Prior wording corrected | Reconciliation against post-08 |
-| 2026-08-14 | Harness guard added and treated as the highest-value preflight, given the silent non-grounding failure on `cliagent-1.0.0` | Reconciliation against post-08 |
+| 2026-08-14 | Harness guardrail added and treated as the highest-value preflight, given the silent non-grounding failure on `cliagent-1.0.0` | Reconciliation against post-08 |
 | 2026-08-14 | v0.1 scope reopened (§12.9) and Web API token source raised as a new blocking question (§12.8) | This revision |
 | 2026-08-15 | §12.8 closed: the Web API funnel acquires its own token and never depends on `pac` state. No `pac` command emits a token, and the VS Code extension is a GUI over the same machine-global profiles, so there is one code path for every developer | User, after verification against the `pac auth` reference |
 | 2026-08-15 | §12.9 closed: v0.1 grows to include pillar A | User |
 | 2026-08-15 | `SESSION-STATE.md` sanitized and kept tracked, rather than gitignored | User |
 | 2026-08-15 | First live run (owner's tenant, Workbench environment): auth chain, discovery, WhoAmI, and harness classification all passed first try. Both harnesses present live; classified correctly | Live integration run |
-| 2026-08-15 | War story 1 narrowed by live evidence and the guard redesigned from construction-refusal to attempt-and-translate (`Convert-PckSavedQueryFetchXmlError`). Sync flag, custom/system, and TableType ruled out as discriminators; discriminator unknown | Third-org verification pass |
-| 2026-08-15 | `bot.authenticationmode` shape verified live; auth-mode fields added to `Get-PckAgentInfo` and `Assert-PckAgentAuthMode` guard shipped (exit 18, war story 3) | Live verification, canon 16 |
+| 2026-08-15 | War story 1 narrowed by live evidence and the guardrail redesigned from construction-refusal to attempt-and-translate (`Convert-PckSavedQueryFetchXmlError`). Sync flag, custom/system, and TableType ruled out as discriminators; discriminator unknown | Third-org verification pass |
+| 2026-08-15 | `bot.authenticationmode` shape verified live; auth-mode fields added to `Get-PckAgentInfo` and `Assert-PckAgentAuthMode` guardrail shipped (exit 18, war story 3) | Live verification, canon 16 |
 | 2026-08-16 | `New-PckKnowledgeSource` shipped and live-proven end to end: created, independently verified, and removed a real knowledge source on a live standard-harness agent. Pillar A is real | Live integration round trip |
 | 2026-08-16 | The table-create half of `New-PckKnowledgeSource` (§7.1) deferred pending a parameter-shape decision; the cmdlet targets existing tables meanwhile | Implementation judgment, flagged in SESSION-STATE |
 | 2026-08-16 | Observed: botcomponent delete cascades to the associated dvtablesearch records (§6.3 note); solution-existence preflight shipped as `Assert-PckSolutionExists` (exit 19, war story 5) | Live integration round trip |
 | 2026-08-16 | Preflight exit codes consolidated to free slots in the full 10..19 range: SPN-incomplete folded into TokenUnavailable (11), invalid URL folded into EnvironmentInvalid (12); PacUnavailable takes 13, ProfileMisaligned takes 16. Pre-release, so no compatibility impact | Implementation need |
-| 2026-08-16 | `Invoke-PckCopilotPipeline` shipped with the pac layer: single pac funnel with sensitive-argument redaction, version and profile-alignment guards built against live-verified output shapes, offline workspace lint, temporary CI profile lifecycle, and -WhatIf as the plan-deployment surface. War story 6 | This build |
+| 2026-08-16 | `Invoke-PckCopilotPipeline` shipped with the pac layer: single pac funnel with sensitive-argument redaction, version and profile-alignment guardrails built against live-verified output shapes, offline workspace lint, temporary CI profile lifecycle, and -WhatIf as the plan-deployment surface. War story 6 | This build |
 | 2026-08-16 | Lint correction from red-first testing: YAML-level quoting is the only protection for Power Fx values containing colon-space; Power Fx's own quotes are invisible to YAML. The lint flags any non-YAML-quoted `=` value containing ': ' | Adversarial pass |
-| 2026-08-16 | Live pipeline run passed end to end: drift guard refused the real misaligned profile (exit 16), then with an aligned profile the full loop ran clean (init workspace, lint over 15 Microsoft-authored files with zero false positives, pack to the predicted zip path, import and publish). Probe agent and solution removed afterward; environment left as found | Live run, owner participating |
+| 2026-08-16 | Live pipeline run passed end to end: drift guardrail refused the real misaligned profile (exit 16), then with an aligned profile the full loop ran clean (init workspace, lint over 15 Microsoft-authored files with zero false positives, pack to the predicted zip path, import and publish). Probe agent and solution removed afterward; environment left as found | Live run, owner participating |
 | 2026-08-16 | War story 7 discovered and guarded the same day: pac exits 0 on errors it prints, three observed instances. The pac funnel no longer believes a zero exit code when the output carries an Error: line | Live run |
 | 2026-08-16 | Noted for the MCP build: pac 2.10.1 ships a `pac copilot mcp` subcommand ("information about local MCP server"). Prior-art check required before building `pac-copilot-kit-mcp` (trust-but-verify) | Live run discovery |
 | 2026-08-16 | Prior-art check done. Microsoft's `pac-mcp` (CLI 1.44+ dotnet-tool line) exposes pac commands as MCP tools and uses the active pac auth profile, so it inherits both the capability gap (no Dataverse knowledge sources) and the drift risk the kit guards against. `pac-copilot-kit-mcp` is the complement, not a duplicate: it exposes the guarded lifecycle. Positioning recorded here so it is not re-derived | Web verification against learn/agent-academy/pp-mcp |
-| 2026-08-16 | `pac-copilot-kit-mcp` shipped: Node/TypeScript, stdio, seven verbs, startup preflight per §8.2, injection-safe bridge (tool arguments travel as JSON in environment variables, never on a command line; cmdlets from a fixed allowlist), typed exit codes surfaced to the client, `explain-failure` reasoning locally with a memory of the session's last failure. Proven by a stdio smoke test and a live full-stack probe in which the drift guard refused through MCP and `explain-failure` explained it unprompted | This build |
+| 2026-08-16 | `pac-copilot-kit-mcp` shipped: Node/TypeScript, stdio, seven verbs, startup preflight per §8.2, injection-safe bridge (tool arguments travel as JSON in environment variables, never on a command line; cmdlets from a fixed allowlist), typed exit codes surfaced to the client, `explain-failure` reasoning locally with a memory of the session's last failure. Proven by a stdio smoke test and a live full-stack probe in which the drift guardrail refused through MCP and `explain-failure` explained it unprompted | This build |
 | 2026-08-16 | `Sync-PckCopilotAgent` shipped as the thin guarded wrapper over `pac copilot pull` (argument shape verified live: `--project-dir` only), completing the cmdlet behind the `pull-agent` verb | This build |
-| 2026-08-16 | Spec body trued up to the code-complete state: status header, §5.2 resolution note, §6 and §7 implementation-status markers (shipped versus designed-not-built, and the guards that shipped in a different shape than sketched), §8.4 bridge as built, §10 sketch corrected for `-PublisherPrefix`, §11 layout as built, §12 header. The decision log alone is not the spec | Owner asked whether the spec was current; audit said no |
+| 2026-08-16 | Terminology: "guard" renamed to "guardrail" across docs, folder (`Private/Guardrails/`), registries, and messages, with the two tiers named **preflight checks** and **error translators**. Rationale: "guard" as an architectural noun is kit jargon a Power Platform audience will not arrive knowing, while "guardrails" completes the paved-road metaphor and is current common vocabulary. Verb uses of "guard" kept. No public cmdlet names were affected | User challenged the term; options weighed; owner picked guardrails |
+| 2026-08-16 | MCP installation documented: README section (build from clone, wire per client, the pac-mcp distinction) plus the full `docs/mcp-clients.md` walkthrough (prerequisites, env vars, verb table, refusal semantics, startup troubleshooting) | User flagged the gap |
+| 2026-08-16 | Spec body trued up to the code-complete state: status header, §5.2 resolution note, §6 and §7 implementation-status markers (shipped versus designed-not-built, and the guardrails that shipped in a different shape than sketched), §8.4 bridge as built, §10 sketch corrected for `-PublisherPrefix`, §11 layout as built, §12 header. The decision log alone is not the spec | Owner asked whether the spec was current; audit said no |
 | 2026-08-15 | Repo created public, then flipped private the same day: the design doc condenses two unpublished articles, and the repo should not front-run their debut. Public again when both publish. Canon 13 discipline unchanged while private | User |
 | 2026-08-15 | All remaining §12 items closed: §7 names as proposed with the `Pck` prefix kept after a `Pac`-prefix challenge, PowerShell 7.4+, Node 20 LTS, manual Gallery publish for v0.1, war-stories owned here, seventh MCP verb `add-knowledge-source` added (canon 11 amended) | User ("let's build") |
 | 2026-08-15 | `Test-PckCopilotAgent` stays deferred to v0.2. It sits on the eval-harness non-goal boundary and its proposed dependency is unverified. The v0.2 candidate shape is a deployment smoke test (one grounded question with citations), which serves pillar B, rather than eval CSVs | User |

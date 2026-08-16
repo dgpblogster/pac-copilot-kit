@@ -8,7 +8,7 @@ function Assert-PckAgentHarness {
     display in the Knowledge panel, because the panel reads the same component
     table, while the runtime never queries them. The agent answers from general
     model knowledge with no error anywhere. Unknown templates are refused too:
-    the failure mode this guard prevents is silent, so unrecognized is unsafe
+    the failure mode this guardrail prevents is silent, so unrecognized is unsafe
     (design 6.1; war story 2 in docs/war-stories.md).
     #>
     [CmdletBinding()]

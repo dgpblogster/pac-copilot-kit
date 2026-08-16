@@ -7,7 +7,7 @@ function Invoke-PckDataverseRequest {
     .DESCRIPTION
     Responsibilities, in order:
       1. Refuse when not connected (Connect-PckPowerPlatform sets the context).
-      2. Run request-construction guards, which refuse routes that are known to fail
+      2. Run request-construction guardrails, which refuse routes that are known to fail
          before any network call is made (design 6.2).
       3. Enforce solution-awareness (canon 7): Post, Patch, and Put require
          -SolutionName so the result lands inside a solution, unless the caller
@@ -15,7 +15,7 @@ function Invoke-PckDataverseRequest {
          content, such as flipping isexternalsearchindexenabled on the organization.
       4. Send, honoring Retry-After on 429 and 503 up to -MaxRetries.
       5. Translate failures into PckError with the Dataverse error code in the
-         message. Response-translation guards for known error signatures land here
+         message. Response-translation guardrails for known error signatures land here
          as they are authored.
 
     .OUTPUTS
@@ -50,10 +50,10 @@ function Invoke-PckDataverseRequest {
             $script:PckExitCode.NotConnected)
     }
 
-    # Guards inspect a normalized view of the request: absolute URLs reduced to
+    # Guardrails inspect a normalized view of the request: absolute URLs reduced to
     # their data-relative path, leading slashes stripped, and string bodies parsed
-    # as JSON when they are JSON. A guard that can be bypassed by respelling the
-    # same request is not a guard.
+    # as JSON when they are JSON. A guardrail that can be bypassed by respelling the
+    # same request is not a guardrail.
     $guardPath = $Path
     if ($guardPath -match '(?i)^https?://[^/]+/api/data/v\d+\.\d+/(.+)$') {
         $guardPath = $Matches[1]
@@ -65,8 +65,8 @@ function Invoke-PckDataverseRequest {
         try { $guardBody = $Body | ConvertFrom-Json } catch { }
     }
 
-    foreach ($guard in $script:PckRequestConstructionGuards) {
-        & $guard -Method $Method -Path $guardPath -Body $guardBody
+    foreach ($check in $script:PckRequestConstructionChecks) {
+        & $check -Method $Method -Path $guardPath -Body $guardBody
     }
 
     $Headers = $Headers.Clone()
@@ -131,9 +131,9 @@ function Invoke-PckDataverseRequest {
             $code = if ($detail -and $detail.PSObject.Properties['code']) { $detail.code } else { "HTTP $status" }
             $message = if ($detail -and $detail.PSObject.Properties['message']) { $detail.message } else { $_.Exception.Message }
 
-            # Response translators (design 6.2): known failure signatures become
+            # Error translators (design 6.2): known failure signatures become
             # war-story guidance instead of an opaque code.
-            foreach ($translator in $script:PckResponseTranslators) {
+            foreach ($translator in $script:PckErrorTranslators) {
                 $translated = & $translator -Method $Method -Path $guardPath -Body $guardBody -Code $code -Message $message
                 if ($translated) {
                     throw [PckError]::new($translated, $script:PckExitCode.KnownBrokenRoute)

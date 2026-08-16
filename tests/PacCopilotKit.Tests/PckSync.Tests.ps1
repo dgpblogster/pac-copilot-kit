@@ -40,7 +40,7 @@ Describe 'Sync-PckCopilotAgent' {
         }
     }
 
-    It 'pulls with an explicit project dir after the guards pass' {
+    It 'pulls with an explicit project dir after the guardrails pass' {
         $result = Sync-PckCopilotAgent -SourcePath $script:src -EnvironmentId $script:envId
         $result.Succeeded | Should -BeTrue
         Should -Invoke -ModuleName PacCopilotKit Invoke-PckPacCommand -Times 1 -Exactly -ParameterFilter {

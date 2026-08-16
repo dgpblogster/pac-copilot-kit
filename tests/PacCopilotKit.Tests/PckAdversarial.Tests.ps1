@@ -2,8 +2,8 @@
 
 <#
 Adversarial suite. Each test attacks the module the way a hostile or careless
-caller would, rather than the way the happy-path tests do. A guard that can be
-bypassed by respelling the same request is not a guard; these tests exist to
+caller would, rather than the way the happy-path tests do. A guardrail that can be
+bypassed by respelling the same request is not a guardrail; these tests exist to
 prove the bypasses are closed and keep them closed.
 #>
 
@@ -171,7 +171,7 @@ Describe 'Connect-PckPowerPlatform hostile inputs' {
     }
 }
 
-Describe 'Harness guard hostile inputs' {
+Describe 'Harness guardrail hostile inputs' {
     It 'refuses a null template rather than passing it' {
         $err = {
             InModuleScope PacCopilotKit {

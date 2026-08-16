@@ -25,16 +25,16 @@ $script:PckDiscoveryUrl = 'https://globaldisco.crm.dynamics.com'
 $script:PckContext = $null
 $script:PckToken   = $null
 
-# Request-construction guards the funnel runs before any network call (design 6.2).
-# Each entry is a function under Private/Guards that throws to refuse the request.
-# Empty since 2026-08-15: the savedquery guard moved to the translator tier after
+# Request-construction guardrails the funnel runs before any network call (design 6.2).
+# Each entry is a function under Private/Guardrails that throws to refuse the request.
+# Empty since 2026-08-15: the savedquery guardrail moved to the translator tier after
 # live verification showed the route succeeds on some system views.
-$script:PckRequestConstructionGuards = @()
+$script:PckRequestConstructionChecks = @()
 
-# Response translators the funnel consults when a request fails (design 6.2).
-# Each is a function under Private/Guards receiving the normalized request plus
+# Error translators the funnel consults when a request fails (design 6.2).
+# Each is a function under Private/Guardrails receiving the normalized request plus
 # the Dataverse error code and message; the first to return a non-null string
 # supplies the enriched error, thrown with the KnownBrokenRoute exit code.
-$script:PckResponseTranslators = @(
+$script:PckErrorTranslators = @(
     'Convert-PckSavedQueryFetchXmlError'
 )

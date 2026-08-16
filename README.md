@@ -14,9 +14,9 @@ This kit was born inside a real project: a support agent grounded on Dataverse k
 
 ## What this kit is not
 
-It is not a `pac` replacement; everything falls back to `pac` primitives, and the kit adds discipline and guards rather than a reimplementation. It is not an authoring tool for topic YAML, not a hosted service, not an eval harness, and not coupled to any one product or tenant. The full non-goals list lives in the design doc, precisely so scope creep gets caught early.
+It is not a `pac` replacement; everything falls back to `pac` primitives, and the kit adds discipline and guardrails rather than a reimplementation. It is not an authoring tool for topic YAML, not a hosted service, not an eval harness, and not coupled to any one product or tenant. The full non-goals list lives in the design doc, precisely so scope creep gets caught early.
 
-It also does not close the gap in `pac`; it works around it. If a future `pac` release learns to create Dataverse knowledge sources natively, this kit's job there shrinks to guards, and I will be genuinely happy about it!
+It also does not close the gap in `pac`; it works around it. If a future `pac` release learns to create Dataverse knowledge sources natively, this kit's job there shrinks to guardrails, and I will be genuinely happy about it!
 
 **NOTE:** creating a knowledge source and getting the agent to actually ground on it are two different chains, and it pays to keep them straight. The creation chain is fully automated here. The grounding chain has preconditions of its own: the org-level search flag, the end-user authentication mode, the agent's runtime, and the find columns on each table's Quick Find view. The kit checks every one of them, automates the ones that can be automated, and tells you plainly about the one that cannot (see [docs/war-stories.md](docs/war-stories.md), story 1).
 
@@ -81,6 +81,31 @@ The export in step 6 is a backup, not the source of truth. The repository define
 | Wait for real search readiness | kit | The status endpoint lies; only queries tell the truth |
 | Back up the solution | kit | One call, timestamped, explicitly not the source of truth |
 
+## Installing the MCP server
+
+The kit has two doors into the same engine. Humans get the PowerShell cmdlets; AI agents get `pac-copilot-kit-mcp`, a local MCP server that exposes the same guarded lifecycle as seven task-shaped verbs over stdio. Same guardrails, same typed refusals, same everything, because the server is a thin shim that shells to the module; nothing lives in it that the module does not enforce.
+
+Until the npm package ships, you build it from the clone, as follows:
+
+```powershell
+# 1. The module first; the server refuses to start without it
+git clone https://github.com/dgpblogster/pac-copilot-kit.git
+Import-Module ./pac-copilot-kit/src/PacCopilotKit/PacCopilotKit.psd1
+Get-Command -Module PacCopilotKit          # eight cmdlets means you are in business
+
+# 2. Then the server (Node 20 or later)
+cd pac-copilot-kit/src/pac-copilot-kit-mcp
+npm install
+npm run build
+npm run smoke                              # handshake + seven tools advertised
+```
+
+Then wire it into your client with the matching config from [samples/mcp-config](samples/mcp-config): `.mcp.json` at the project root for Claude Code, `.vscode/mcp.json` for GitHub Copilot in VS Code, or `~/.codex/config.toml` for Codex CLI. Each sample points `node` at the built `dist/index.js`; set `PCK_DEFAULT_ENVIRONMENT_ID` in the `env` block and you are done. When the npm package publishes, the command line shrinks to `npx -y pac-copilot-kit-mcp` and nothing else changes.
+
+A few things to note here. On startup the server verifies pwsh 7.4+, the module, and the `pac` CLI before advertising a single tool, so a broken prerequisite fails loudly at launch instead of surfacing as a mysterious tool error later. The seven verbs are `plan-deployment`, `run-pipeline`, `add-knowledge-source`, `wait-for-search`, `pull-agent`, `backup-solution`, and `explain-failure`; the first is the dry run, and the last turns any typed refusal into plain what-happened-and-what-to-do prose without another environment round trip. In practice you just ask your agent for the outcome ("plan a deployment of the agent workspace", "wire the case resolutions table into the agent as knowledge") and it picks the verb; the guardrails do the rest. The full walkthrough, including every environment variable and what each client looks like when it works, lives in [docs/mcp-clients.md](docs/mcp-clients.md).
+
+**NOTE:** Microsoft's newer `pac` CLI line ships an MCP server of its own (`pac-mcp`), and it is a different animal: it exposes `pac` commands as tools and rides the active `pac` auth profile. Useful, but it inherits exactly the two problems this kit exists for: it cannot create Dataverse knowledge sources, and it trusts the machine-global profile that drifts. Run both if you like; they do not overlap.
+
 ## If you are an AI agent working with this kit
 
 This section is for you, not for your human. The kit was designed to be driven by agents as much as by people, and these are the rules that make that work.
@@ -90,7 +115,7 @@ This section is for you, not for your human. The kit was designed to be driven b
 3. **The environment id is always explicit.** Set `PCK_DEFAULT_ENVIRONMENT_ID` or pass `-EnvironmentId` on every connect. Do not attempt to infer the environment from the `pac` auth profile; the kit refuses to, and so should you.
 4. **Ask for `-Json` and parse stdout only.** Every public cmdlet emits one well-formed JSON object with `-Json`. Warnings and human commentary travel separately; never scrape them.
 5. **Read the exit code before deciding what to do next,** as follows: codes 10 through 19 are preflight refusals, meaning the environment or the inputs are misconfigured; the message names the specific problem, so fix that and only that, and do not retry the same call unchanged. Code 20 means you asked for a route the platform is known to break; the error names the working alternatives, so switch to one of them. Code 1 is an ordinary operational failure.
-6. **A refusal is information, not an obstacle.** Every guard in this kit encodes a documented platform failure, and most of those failures are silent when you hit them raw. If the kit refuses because the agent is the wrong harness or the wrong authentication mode, a knowledge source created anyway would display in the portal and never be queried, with no error anywhere. Do not work around a refusal by calling the Web API directly. The refusal is the feature.
+6. **A refusal is information, not an obstacle.** Every guardrail in this kit encodes a documented platform failure, and most of those failures are silent when you hit them raw. If the kit refuses because the agent is the wrong harness or the wrong authentication mode, a knowledge source created anyway would display in the portal and never be queried, with no error anywhere. Do not work around a refusal by calling the Web API directly. The refusal is the feature.
 7. **Long waits are real waits.** `Wait-PckDataverseSearchReady` polls for up to 150 minutes by default because initial index provisioning genuinely takes hours on a fresh environment. Do not kill it early and conclude failure, and do not shorten the timeout below reality.
 8. **Dry-run deployments first.** `Invoke-PckCopilotPipeline -WhatIf` runs every read-only check and reports what the real run would do. Prefer offering your human that plan before the real thing.
 
@@ -102,9 +127,10 @@ This section is for you, not for your human. The kit was designed to be driven b
 
 ## Documentation
 
-- [Design](docs/pac-copilot-kit-design.md): the full architecture, guard funnel, and decision log
-- [War stories](docs/war-stories.md): the `pac` and Dataverse gotchas the guards encode, one honest entry per guard
-- `docs/quickstart.md`, `docs/ci-recipes.md`, `docs/mcp-clients.md` *(planned)*
+- [Design](docs/pac-copilot-kit-design.md): the full architecture, guardrail funnel, and decision log
+- [War stories](docs/war-stories.md): the `pac` and Dataverse gotchas the guardrails encode, one honest entry per guardrail
+- [MCP clients](docs/mcp-clients.md): installing the server, wiring each client, the seven verbs, and troubleshooting
+- `docs/quickstart.md`, `docs/ci-recipes.md` *(planned)*
 
 **NOTE:** part of what this kit does relies on undocumented Dataverse record shapes, discovered by inspecting what the Copilot Studio maker portal writes. Those shapes are not supported by Microsoft and can change in any release. The kit verifies rather than assumes, the affected surface is called out explicitly in the war stories, and the integration tests are built to detect the platform shifting underneath us. Use it for development and ALM automation with your eyes open.
 

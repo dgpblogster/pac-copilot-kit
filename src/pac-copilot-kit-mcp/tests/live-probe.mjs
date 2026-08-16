@@ -1,7 +1,7 @@
 /**
  * Live probe, run manually: exercises the full stack (MCP -> pwsh bridge ->
- * module -> guards -> typed exit code -> local reasoner) with no mutation.
- * plan-deployment is expected to be REFUSED by the profile-alignment guard
+ * module -> guardrails -> typed exit code -> local reasoner) with no mutation.
+ * plan-deployment is expected to be REFUSED by the profile-alignment guardrail
  * when the active pac profile points elsewhere, and explain-failure must then
  * explain that refusal unprompted. Requires PCK_DEFAULT_ENVIRONMENT_ID and a
  * workspace path in PCK_PROBE_WS.
@@ -76,7 +76,7 @@ try {
     if (!whyText.includes("ProfileMisaligned") || !whyText.includes("pac auth")) {
       fail(`explain-failure did not explain the refusal: ${whyText}`);
     }
-    console.log("LIVE PROBE PASS: the guard refused through the full stack, and explain-failure explained it unprompted.");
+    console.log("LIVE PROBE PASS: the guardrail refused through the full stack, and explain-failure explained it unprompted.");
   } else {
     // Aligned profile: the plan itself must be clean whatif steps.
     if (!planText.includes("whatif")) fail(`expected a whatif plan, got: ${planText}`);

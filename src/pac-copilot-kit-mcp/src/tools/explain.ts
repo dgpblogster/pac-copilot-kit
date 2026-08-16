@@ -1,6 +1,6 @@
 /**
  * explain-failure: the one verb with no cmdlet behind it (design 8.3). Turns
- * the guard funnel's typed exit codes into agent-consumable prose, locally,
+ * the guardrail funnel's typed exit codes into agent-consumable prose, locally,
  * without another Dataverse round trip.
  */
 import { z } from "zod";

@@ -4,7 +4,7 @@ function Convert-PckSavedQueryFetchXmlError {
     Translates 0x80040216 on a savedquery fetchxml update into the war story.
 
     .DESCRIPTION
-    Response translator (design 6.2). Live verification on 2026-08-15 narrowed
+    Error translator (design 6.2). Live verification on 2026-08-15 narrowed
     war story 1: the failure reproduces broadly (three orgs; system and custom
     tables; standard and elastic) while a minority of views accept the same
     call, and the discriminator is not yet identified. Sync flag, custom versus

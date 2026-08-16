@@ -16,7 +16,7 @@ export const EXIT_CODES: Record<number, ExitCodeInfo> = {
   1: {
     name: "General",
     meaning: "An operational failure: the call was legitimate but did not succeed.",
-    guidance: "Read the error text; this is not a guard refusal. Diagnose the named problem before retrying.",
+    guidance: "Read the error text; this is not a guardrail refusal. Diagnose the named problem before retrying.",
   },
   10: {
     name: "EnvironmentNotSpecified",
@@ -83,7 +83,7 @@ export function explain(code: number, message?: string): string {
     lines.push(`What happened: ${info.meaning}`);
     lines.push(`What to do: ${info.guidance}`);
     if (code >= 10 && code <= 19) {
-      lines.push("This is a preflight refusal: fix the named condition; do not retry the same call unchanged, and do not bypass the guard by calling the platform directly. The failures these guards prevent are silent when hit raw.");
+      lines.push("This is a preflight refusal: fix the named condition; do not retry the same call unchanged, and do not bypass the guardrail by calling the platform directly. The failures these guardrails prevent are silent when hit raw.");
     }
   } else {
     lines.push(`Exit code ${code} is not in the kit's registry; treat it as an operational failure.`);

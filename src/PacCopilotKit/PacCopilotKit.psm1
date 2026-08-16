@@ -18,7 +18,7 @@ class PckPreflightError : PckError {
 # Load order matters only in that constants come first; the list below guarantees it.
 $loadOrder = @(
     Get-ChildItem -Path "$PSScriptRoot/Private" -Filter '*.ps1' -File | Sort-Object Name
-    Get-ChildItem -Path "$PSScriptRoot/Private/Guards" -Filter '*.ps1' -File | Sort-Object Name
+    Get-ChildItem -Path "$PSScriptRoot/Private/Guardrails" -Filter '*.ps1' -File | Sort-Object Name
     Get-ChildItem -Path "$PSScriptRoot/Public" -Filter '*.ps1' -File | Sort-Object Name
 )
 foreach ($file in $loadOrder) {
