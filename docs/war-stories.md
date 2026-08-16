@@ -99,7 +99,13 @@ Custom versus system, `SyncToExternalSearchIndex`, and `TableType` were each tes
 
 **Symptom.** pac prints `Error: A required argument --name is missing.` (or an environment-resolution failure, or another validation error) and then exits with code 0. Observed live three times in a single session on pac 2.10.1: an init missing required arguments, a delete missing required arguments, and a delete whose `--environment` value could not be resolved. Any pipeline gating on the exit code alone treats these as success and keeps going.
 
-**Why it matters.** Exit codes are the entire contract between a CLI and CI. A step that fails while reporting success does not stop the pipeline; the failure surfaces later, downstream, disguised as something else.
+**Root cause, isolated 2026-08-16: it is the launcher, not pac.** The MSI-installed `pac` on the PATH is a two-line `pac.cmd` that calls `pac.launcher.exe`, and an A/B of the same failing command tells the whole story: through the launcher, error printed, exit 0; through the versioned `pac.exe` underneath (`%LOCALAPPDATA%\Microsoft\PowerAppsCLI\Microsoft.PowerApps.CLI.<version>\tools\pac.exe`), same error, exit 1. pac itself tells the truth; the launcher discards the exit code. The launcher is file version 1.0.7 with a file date of September 2019, still shipping in the current installer.
+
+**Upstream.** Known and open: [microsoft/powerplatform-build-tools#912](https://github.com/microsoft/powerplatform-build-tools/issues/912) (pac.launcher.exe does not return correct exit code) and [#1027](https://github.com/microsoft/powerplatform-build-tools/issues/1027) (the symptom). The isolation above has been added to the #912 thread.
+
+**Workarounds.** Install pac as a dotnet tool (`dotnet tool install --global Microsoft.PowerApps.CLI.Tool`), which skips the launcher entirely and returns honest exit codes; or call the versioned `pac.exe` directly; or do what this kit does and refuse to trust a zero exit code that arrives with an `Error:` line.
+
+**Why it matters.** Exit codes are the entire contract between a CLI and CI. A step that fails while reporting success does not stop the pipeline; the failure surfaces later, downstream, disguised as something else. The general lesson: verify the exit codes of every CLI you automate, through the exact path your pipeline will call, because a wrapper on the PATH can defeat a perfectly honest executable underneath it.
 
 **Also learned in the same session.** `--environment` values resolve within the active auth profile's tenant, so targeting an environment in another tenant needs the profile switched first, regardless of what `--environment` says. And an agent cannot be deleted through the raw Dataverse `bots` DELETE while components reference it, and even component-free deletion can be gated by an unprovisioned feature flag; `pac copilot delete --bot <id> --confirm` is the route that works.
 

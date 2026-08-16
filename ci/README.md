@@ -15,6 +15,10 @@ The kit's CI mode does the work that usually bloats these files. When `PCK_SPN_T
 
 The dry-run step is not decoration. It runs every preflight check and the offline workspace lint with nothing mutated, so a misconfigured pipeline fails in the plan step with a typed exit code instead of failing halfway through a deployment.
 
+## Why the kit checks pac output, not just exit codes
+
+The MSI-installed `pac` reaches your script through a launcher that discards exit codes: the same failing command returns 0 through the launcher and 1 through the versioned `pac.exe` underneath ([#912](https://github.com/microsoft/powerplatform-build-tools/issues/912), [#1027](https://github.com/microsoft/powerplatform-build-tools/issues/1027), both open). A pipeline step gating on `pac`'s exit code alone can sail past a printed error. The kit's `pac` funnel treats any `Error:` line as a failure regardless of the exit code, so `Invoke-PckCopilotPipeline` fails honestly whichever `pac` flavor the installer task put on the agent. If you add your own raw `pac` steps to these pipelines, either check their output or install `pac` as a dotnet tool, which skips the launcher.
+
 ## Reading a failure
 
 The kit's exit codes are the diagnostic contract: **10 through 19** mean a preflight check refused (the environment or inputs are misconfigured; the log names exactly which condition, fix that and only that), **20** means a known-broken platform route (the message names the working alternatives), **1** is an ordinary operational failure. A refusal will fail the step; that is the design working, not the pipeline flaking.

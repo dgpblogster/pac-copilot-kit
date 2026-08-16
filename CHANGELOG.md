@@ -6,6 +6,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 
 ## [Unreleased]
 
+### Changed (war story 7 root cause, 2026-08-16)
+- War story 7 upgraded from symptom to root cause: `pac.launcher.exe` (v1.0.7, dated September 2019) discards exit codes; the versioned `pac.exe` underneath returns them honestly. A/B verified live; upstream issues #912 and #1027 linked; dotnet-tool install documented as the launcher-free path. `docs/war-stories.md`, `README.md` (launcher NOTE, "How it earned its scars" section with the open discriminator challenge, agent-section trust note), and `ci/README.md` updated. No code change: the funnel guardrail already covered both flavors.
+
 ### Added (CI recipes, 2026-08-16)
 - `ci/github-actions/deploy-agent.yml` and `ci/azure-pipelines/deploy-agent.yml`: plan-then-deploy pipelines using the kit's CI mode (temporary pac profile, no who-am-i step). Syntax-validated; end-to-end run recorded after the Gallery publish, per `ci/README.md`.
 - `ci/README.md`: variable wiring, why the recipes are short, reading typed failures in a log, and the pre-release from-source install variant.
