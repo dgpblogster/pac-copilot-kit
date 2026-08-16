@@ -18,6 +18,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 - `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
 - `tests/PacCopilotKit.Tests/PckAdversarial.Tests.ps1`: 13 adversarial tests written red-first against the walking skeleton; 7 landed as real defects, fixed below. Suite total 44 unit tests, all passing.
 
+### Added (MCP server, 2026-08-16)
+- `src/pac-copilot-kit-mcp/`: the v0.1 MCP server. Node/TypeScript, stdio, seven verbs (`plan-deployment`, `run-pipeline`, `backup-solution`, `pull-agent`, `add-knowledge-source`, `wait-for-search`, `explain-failure`) shelling to the module per canon 2. Startup preflight per design 8.2 (pwsh floor, module import, pac presence) fails the launch loudly instead of a silent tool-not-found later.
+- Injection-safe bridge: tool arguments travel as JSON in environment variables and are splatted inside PowerShell, never concatenated onto a command line; cmdlets come from a fixed allowlist.
+- Typed failures: a non-zero cmdlet exit code (the PckError codes) becomes the child process exit code, is surfaced to the MCP client with its registry name, and is remembered so `explain-failure` can explain the session's last failure unprompted, locally, with no environment round trip.
+- `Sync-PckCopilotAgent`: thin guarded wrapper over `pac copilot pull` (argument shape verified live), completing the cmdlet behind `pull-agent`. 3 unit tests.
+- `tests/smoke.mjs` (handshake, seven tools advertised, local reasoning) and `tests/live-probe.mjs` (full-stack proof: the drift guard refused through MCP with exit 16 and `explain-failure` explained it). Both passing.
+- `samples/mcp-config/`: copy-paste configs for Claude Code, VS Code, and Codex CLI, with the npx swap noted for after the npm publish.
+- Design decision log: positioning against Microsoft's `pac-mcp` recorded. Theirs exposes pac commands and rides the active pac profile; ours exposes the guarded lifecycle. Complement, not duplicate.
+
 ### Added (live pipeline run, 2026-08-16)
 - `Invoke-PckCopilotPipeline` live-proven end to end: the drift guard refused a genuinely misaligned profile with exit 16, and with an aligned profile the full loop ran clean against a real environment (lint over 15 Microsoft-authored scaffold files with zero false positives, pack to the predicted zip path, import and publish). Probe artifacts removed; environment left as found.
 - War story 7: pac exits 0 on errors it prints, observed three times live. `Invoke-PckPacCommand` no longer believes a zero exit code when the output carries an `Error:` line, with the same sensitive redaction; two red-first tests pin it. Suite: 106 unit + 4 live.

@@ -1,0 +1,8 @@
+# ChatGPT Codex CLI: merge into ~/.codex/config.toml. Until the npm package is
+# published, point node at a built clone of pac-copilot-kit; afterward, replace
+# command/args with: command = "npx", args = ["-y", "pac-copilot-kit-mcp"]
+
+[mcp_servers.pac-copilot-kit]
+command = "node"
+args = ["C:/path/to/pac-copilot-kit/src/pac-copilot-kit-mcp/dist/index.js"]
+env = { PCK_DEFAULT_ENVIRONMENT_ID = "00000000-0000-0000-0000-000000000000" }

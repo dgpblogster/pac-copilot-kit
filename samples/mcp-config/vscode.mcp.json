@@ -1,0 +1,13 @@
+{
+  "//": "VS Code (GitHub Copilot): save as .vscode/mcp.json in the workspace. Until the npm package is published, point node at a built clone of pac-copilot-kit; afterward, replace command/args with: npx -y pac-copilot-kit-mcp",
+  "servers": {
+    "pac-copilot-kit": {
+      "command": "node",
+      "args": ["C:/path/to/pac-copilot-kit/src/pac-copilot-kit-mcp/dist/index.js"],
+      "env": {
+        "PCK_DEFAULT_ENVIRONMENT_ID": "00000000-0000-0000-0000-000000000000",
+        "PCK_WORKSPACE_ROOT": "${workspaceFolder}"
+      }
+    }
+  }
+}

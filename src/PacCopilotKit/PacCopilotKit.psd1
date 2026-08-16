@@ -13,6 +13,7 @@
         'Get-PckAgentInfo'
         'Invoke-PckCopilotPipeline'
         'New-PckKnowledgeSource'
+        'Sync-PckCopilotAgent'
         'Wait-PckDataverseSearchReady'
     )
     CmdletsToExport   = @()
