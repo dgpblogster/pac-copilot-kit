@@ -2,36 +2,27 @@
 
 A paved-road toolkit for the Microsoft Copilot Studio agent lifecycle, built on the Power Platform CLI (`pac`) and the Dataverse Web API.
 
-> **Status: pre-release.** The design is settled and recorded in [docs/pac-copilot-kit-design.md](docs/pac-copilot-kit-design.md). The PowerShell module works from source (`Import-Module ./src/PacCopilotKit/PacCopilotKit.psd1`) and its headline path is live-proven; the PowerShell Gallery publish and the MCP server are still ahead, so nothing is `Install-Module`-able yet.
+> **Status: pre-release.** The design is settled and recorded in [docs/pac-copilot-kit-design.md](docs/pac-copilot-kit-design.md). The PowerShell module works from source today (`Import-Module ./src/PacCopilotKit/PacCopilotKit.psd1`) and its headline path has been proven against a live environment. The PowerShell Gallery publish and the MCP server are still ahead, so nothing is `Install-Module`-able just yet.
 
-## Why this exists
+## Why this kit exists
 
-Two reasons, and every feature traces to one of them.
+This kit was born inside a real project: a support agent grounded on Dataverse knowledge articles and a custom table of curated case resolutions, treated as code from day one, deployed from source, and rebuilt from scratch more times than I care to admit. Along the way, two problems kept coming back, and every feature here traces to one of them.
 
-**Pillar A, capability. Do what `pac` cannot.** Copilot Studio's Dataverse knowledge sources have no code path. `pac copilot pack` rejects a Dataverse source definition placed in the workspace `knowledge/` folder, while website and SharePoint sources pack fine. The maker portal is the only documented route. This kit creates them through the Dataverse Web API instead, in-solution and repeatably, and owns the whole grounding chain around them rather than the record creates alone.
+**First, there is a hole in the tooling.** Copilot Studio's Dataverse knowledge sources, the one source type that lives in the same platform as the agent itself, cannot be created by `pac` at all. Website sources pack fine from YAML, SharePoint sources pack fine, and a Dataverse source definition gets rejected outright, which leaves the maker portal as the only documented route. Now, clicking a portal is not a deployment strategy. As it turns out, every knowledge source you click together materializes as a handful of ordinary Dataverse rows, and anything that is ordinary rows can be created with the Web API: inside your solution, from a pipeline, repeatably. That is pillar A, and it is the reason to install the kit.
 
-**Pillar B, paved road. Make the published ALM prescription executable.** Microsoft's Copilot Studio ALM guidance is sound and has not wavered: solutions, a custom publisher and prefix, environment variables for what changes between environments, source control, at least three environments. What is missing is the road. There is no agent task in Power Platform Build Tools, no agent-aware GitHub Action, and no reference pipeline that runs `pac copilot pack` followed by `pac solution import`, even though pack is documented as safe to run in a build pipeline. This kit is that missing primitive, installable in an ordinary script step.
+**Second, the ALM story is prescribed but not automatable.** Microsoft's ALM guidance for Copilot Studio agents is genuinely good, and I follow it: solutions, a custom publisher and prefix, environment variables for anything that changes between environments, source control. But go looking for the pipeline that runs it and you will not find one. There is no agent task in Power Platform Build Tools, no agent-aware GitHub Action, and no reference sample anywhere that runs `pac copilot pack` followed by `pac solution import`, even though pack is documented as safe for build pipelines. The CLI was designed for CI, documented for CI, and the CI tooling has not caught up with it. This kit is that missing piece, installable in an ordinary script step. That is pillar B, and it is the reason you keep the kit around.
 
-Stated precisely: Copilot Studio ALM is **prescribed but not automatable**. This kit does not invent an ALM story. It makes the published one executable.
+## What this kit is not
 
-## What it is not
+It is not a `pac` replacement; everything falls back to `pac` primitives, and the kit adds discipline and guards rather than a reimplementation. It is not an authoring tool for topic YAML, not a hosted service, not an eval harness, and not coupled to any one product or tenant. The full non-goals list lives in the design doc, precisely so scope creep gets caught early.
 
-Not a `pac` replacement. Not an authoring tool for topic YAML. Not a hosted service. Not an eval harness. Not coupled to any one product or tenant. Full non-goals are in the design doc.
+It also does not close the gap in `pac`; it works around it. If a future `pac` release learns to create Dataverse knowledge sources natively, this kit's job there shrinks to guards, and I will be genuinely happy about it!
 
-It also does not close the gap in `pac`; it works around it. If a future `pac` release grows a real code path for Dataverse knowledge sources, this kit's job there shrinks to guards.
-
-## Shape
-
-Two components, one engine.
-
-- **`PacCopilotKit`**, a PowerShell module. The engine and the source of truth. No interactive prompts, explicit environment id on every call, solution-aware by default, structured output, non-zero exit codes.
-- **`pac-copilot-kit-mcp`**, a local MCP server over stdio. A thin shim that shells to the module, so the same guarded lifecycle is available from Claude Code, GitHub Copilot in VS Code, and ChatGPT Codex CLI.
-
-Everything user-facing lives in the module. The MCP layer is contract translation only.
+**NOTE:** creating a knowledge source and getting the agent to actually ground on it are two different chains, and it pays to keep them straight. The creation chain is fully automated here. The grounding chain has preconditions of its own: the org-level search flag, the end-user authentication mode, the agent's runtime, and the find columns on each table's Quick Find view. The kit checks every one of them, automates the ones that can be automated, and tells you plainly about the one that cannot (see [docs/war-stories.md](docs/war-stories.md), story 1).
 
 ## The loop, end to end
 
-The kit does not replace `pac`; it fills in around it. `pac` owns authoring, packing, and the solution lifecycle. The kit owns environment discipline, preflight, the knowledge wiring `pac` cannot do, readiness, and backup. One full pass from empty folder to grounded agent:
+Here is one full pass from empty folder to grounded agent, `pac` and kit interleaved. Nothing exotic, and that is rather the point:
 
 ```powershell
 # ── 0. Tooling floor, once per machine ─────────────────────────────────────────
@@ -41,9 +32,6 @@ $PSVersionTable.PSVersion            # 7.4 or later
 # ── 1. Author locally (pac owns this) ──────────────────────────────────────────
 pac copilot init                     # scaffold; creates nothing in Dataverse
 # edit agent.mcs.yml, settings.mcs.yml, topics/*.mcs.yml
-# schema-check every .mcs.yml offline before anything is packed; a Power Fx
-# string containing ": " parses wrong and surfaces as runtime behavior, not
-# as an error
 
 # ── 2. Pin the environment, once per shell ─────────────────────────────────────
 # The kit never trusts the pac auth profile default org; the id is always
@@ -52,29 +40,19 @@ $env:PCK_DEFAULT_ENVIRONMENT_ID = '00000000-0000-0000-0000-000000000000'
 pac auth create --environment $env:PCK_DEFAULT_ENVIRONMENT_ID
 
 # ── 3. Connect and preflight (kit) ─────────────────────────────────────────────
-# Token comes from the signed-in Azure CLI (az login), PCK_ACCESS_TOKEN, or
-# Az.Accounts; never from pac state. In CI, set PCK_SPN_TENANT, PCK_SPN_APP_ID,
-# and PCK_SPN_SECRET and the same two lines work unchanged.
 Import-Module PacCopilotKit
 Connect-PckPowerPlatform             # discovery, WhoAmI verification, cached context
-
-# Confirm the agent is the standard harness BEFORE wiring knowledge. The newer
-# experience displays knowledge sources it never queries, with no error anywhere.
 Get-PckAgentInfo -Name 'WorkbenchSupportAssistant*'
-# BotId      : ...
-# SchemaName : wrk_WorkbenchSupportAssistant
-# Template   : default-2.1.0
-# Harness    : Standard                       <- proceed only on this
+# Harness              : Standard    <- proceed only on this
+# AuthenticationModeName : Integrated  <- and this
 
-# ── 4. Pack and import (pac owns this) ─────────────────────────────────────────
-pac copilot pack --publisher-prefix wrk --solution-name WorkbenchSupportAssistant
-pac solution import --path .\WorkbenchSupportAssistant.zip --publish-changes
+# ── 4. Deploy: dry-run first, then the real thing (kit wrapping pac) ───────────
+Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+    -SourcePath .\agent -PublisherPrefix wrk -WhatIf   # plan: preflight and lint only
+Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
+    -SourcePath .\agent -PublisherPrefix wrk -Json     # validate, pack, import, publish
 
 # ── 5. Wire the Dataverse knowledge source (kit; the step pac cannot do) ───────
-# Preflights the harness, the end-user auth mode, and the solution; creates the
-# table search config, the knowledge component, and the association, every call
-# inside the solution, rolling back on mid-chain failure. Then poll the search
-# query endpoint (never /status) until seeded rows are actually searchable.
 New-PckKnowledgeSource -BotName 'WorkbenchSupportAssistant' `
     -Table wrk_caseresolution -SolutionName WorkbenchSupportAssistant `
     -DisplayName 'Curated Case Resolutions'
@@ -82,50 +60,53 @@ Enable-PckDataverseSearch                      # once per environment; hours-sca
 Wait-PckDataverseSearchReady -Table wrk_caseresolution -SearchText 'scanner'
 
 # ── 6. Backup and commit (kit + git) ───────────────────────────────────────────
-# The export is a backup; the repository is the agent.
 Export-PckSolutionBackup -SolutionName WorkbenchSupportAssistant -Path .\backups
 git add . ; git commit -m "Milestone: agent deployed and grounded"
 ```
 
-Or collapse steps 2 through 4 into one call that runs the same sequence with every guard in front of it, and dry-run it first:
+A few things to note here. The kit's authentication is deliberately separate from `pac`'s: the Web API side takes its token from your signed-in Azure CLI, from `PCK_ACCESS_TOKEN`, or from `Az.Accounts`, and it never reads `pac` auth state, because `pac` profiles are machine-global and I have personally watched another workspace re-point mine mid-project. The pipeline verifies the active `pac` profile actually targets your pinned environment before it lets `pac` touch anything, and refuses loudly if it does not. And in CI, those same commands work unchanged: set `PCK_SPN_TENANT`, `PCK_SPN_APP_ID`, and `PCK_SPN_SECRET`, and the kit switches to service principal auth, creates a temporary `pac` profile for the run, and deletes it on the way out, success or failure.
 
-```powershell
-Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
-    -SourcePath .\agent -PublisherPrefix wrk -WhatIf   # plan: preflight and lint only
-Invoke-PckCopilotPipeline -SolutionName WorkbenchSupportAssistant `
-    -SourcePath .\agent -PublisherPrefix wrk -Json     # the real run
-```
+The export in step 6 is a backup, not the source of truth. The repository defines the agent; an environment is a place you put it.
 
-In CI, the same two commands work unchanged: a complete `PCK_SPN_*` variable set switches the kit to SPN auth, and the pipeline creates a temporary `pac` profile for the run and deletes it on exit, success or failure.
-
-**Shipped today:** everything shown above. `New-PckKnowledgeSource` is live-proven end to end: created, independently verified, and removed against a real environment. **Still ahead for v0.1:** the `pac-copilot-kit-mcp` server (Claude Code, GitHub Copilot, Codex CLI), CI recipe samples, and the PowerShell Gallery publish. The division of labor below does not change as those land.
+## Who does what
 
 | Step | Owner | Why |
 |---|---|---|
-| Author topics and settings as YAML | `pac copilot init` + editor | Supported, documented, works |
-| Validate YAML offline | your schema check, before pack | The import will not catch what parses wrong |
-| Pack and import the solution | `pac copilot pack` + `pac solution import` | Supported, documented, works |
-| Pin the environment, verify identity | kit | The pac profile is machine-global and drifts |
+| Author topics and settings as YAML | `pac copilot init` + your editor | Supported, documented, works |
+| Validate YAML offline | kit (inside the pipeline) | The import will not catch what parses wrong |
+| Pack and import the solution | `pac`, driven by the kit | Supported, documented, works |
+| Pin the environment, verify identity | kit | The `pac` profile is machine-global and drifts |
 | Gate on harness and auth mode | kit | The failure modes are silent |
 | Create Dataverse knowledge sources | kit | No `pac` path exists at all |
 | Wait for real search readiness | kit | The status endpoint lies; only queries tell the truth |
 | Back up the solution | kit | One call, timestamped, explicitly not the source of truth |
 
+## If you are an AI agent working with this kit
+
+This section is for you, not for your human. The kit was designed to be driven by agents as much as by people, and these are the rules that make that work.
+
+1. **Install from source for now.** Clone the repo, then `Import-Module ./src/PacCopilotKit/PacCopilotKit.psd1`. Verify with `Get-Command -Module PacCopilotKit`. The PowerShell Gallery package and the `pac-copilot-kit-mcp` server (which will give you task-shaped verbs over stdio) are not published yet; until they are, the module is the interface.
+2. **Check the floor before anything else:** PowerShell 7.4+, `pac` CLI 2.10.1+, and one token source for the Web API side: a signed-in Azure CLI, a `PCK_ACCESS_TOKEN` variable, the `Az.Accounts` module, or the three `PCK_SPN_*` variables in CI. The kit tells you exactly which one it wanted if none is available.
+3. **The environment id is always explicit.** Set `PCK_DEFAULT_ENVIRONMENT_ID` or pass `-EnvironmentId` on every connect. Do not attempt to infer the environment from the `pac` auth profile; the kit refuses to, and so should you.
+4. **Ask for `-Json` and parse stdout only.** Every public cmdlet emits one well-formed JSON object with `-Json`. Warnings and human commentary travel separately; never scrape them.
+5. **Read the exit code before deciding what to do next,** as follows: codes 10 through 19 are preflight refusals, meaning the environment or the inputs are misconfigured; the message names the specific problem, so fix that and only that, and do not retry the same call unchanged. Code 20 means you asked for a route the platform is known to break; the error names the working alternatives, so switch to one of them. Code 1 is an ordinary operational failure.
+6. **A refusal is information, not an obstacle.** Every guard in this kit encodes a documented platform failure, and most of those failures are silent when you hit them raw. If the kit refuses because the agent is the wrong harness or the wrong authentication mode, a knowledge source created anyway would display in the portal and never be queried, with no error anywhere. Do not work around a refusal by calling the Web API directly. The refusal is the feature.
+7. **Long waits are real waits.** `Wait-PckDataverseSearchReady` polls for up to 150 minutes by default because initial index provisioning genuinely takes hours on a fresh environment. Do not kill it early and conclude failure, and do not shorten the timeout below reality.
+8. **Dry-run deployments first.** `Invoke-PckCopilotPipeline -WhatIf` runs every read-only check and reports what the real run would do. Prefer offering your human that plan before the real thing.
+
 ## Requirements
 
 - PowerShell 7.4 or later
 - Power Platform CLI 2.10.1 or later
-- Node 20 LTS, for the MCP server only
+- Node 20 LTS, for the MCP server only, once it ships
 
 ## Documentation
 
-- [Design](docs/pac-copilot-kit-design.md), the full architecture, guard funnel, and decision log
-- `docs/war-stories.md`, the publishable inventory of `pac` and Dataverse gotchas the guards encode *(planned)*
+- [Design](docs/pac-copilot-kit-design.md): the full architecture, guard funnel, and decision log
+- [War stories](docs/war-stories.md): the `pac` and Dataverse gotchas the guards encode, one honest entry per guard
 - `docs/quickstart.md`, `docs/ci-recipes.md`, `docs/mcp-clients.md` *(planned)*
 
-## A note on supportability
-
-Part of what this kit does relies on undocumented Dataverse record shapes, discovered by inspecting what the Copilot Studio maker portal writes. Those shapes are not supported by Microsoft and can change in any release. The kit verifies rather than assumes, and the affected surface is called out explicitly in the design doc and the war-stories reference. Use it for development and ALM automation with that in mind.
+**NOTE:** part of what this kit does relies on undocumented Dataverse record shapes, discovered by inspecting what the Copilot Studio maker portal writes. Those shapes are not supported by Microsoft and can change in any release. The kit verifies rather than assumes, the affected surface is called out explicitly in the war stories, and the integration tests are built to detect the platform shifting underneath us. Use it for development and ALM automation with your eyes open.
 
 ## License
 

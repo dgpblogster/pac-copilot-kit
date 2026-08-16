@@ -18,6 +18,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 - `tests/PacCopilotKit.Tests/`: 31 unit tests (all passing) plus 3 live-environment integration tests tagged `Integration`, including the story 1 proof that the raw savedquery PATCH still fails with `0x80040216`.
 - `tests/PacCopilotKit.Tests/PckAdversarial.Tests.ps1`: 13 adversarial tests written red-first against the walking skeleton; 7 landed as real defects, fixed below. Suite total 44 unit tests, all passing.
 
+### Changed (README rewrite, 2026-08-16)
+- `README.md` reauthored in the owner's voice per the private voice profile: narrative why-this-exists, the loop with commentary, and honest boundaries, replacing the spec-sheet register.
+- New README section "If you are an AI agent working with this kit": install-from-source steps, floor checks, the explicit-environment rule, the `-Json` contract, the exit-code decision table, the refusals-are-information rule, real-wait guidance, and dry-run-first.
+
 ### Added (pillar B pipeline, 2026-08-16)
 - `Invoke-PckCopilotPipeline`: connect, pac floor, pac auth (implicit CI/dev mode; temporary CI profile deleted on exit even on failure), offline workspace lint, `pac copilot pack`, `pac solution import --publish-changes`. `-WhatIf` runs the read-only steps and reports the rest, which is the surface the MCP `plan-deployment` verb will wrap.
 - `Invoke-PckPacCommand`: the single pac funnel, mirroring the Web API funnel. `-Sensitive` withholds arguments **and** output from errors and logging, because pac may echo argument context.
