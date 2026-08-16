@@ -23,4 +23,4 @@ Requirements: PowerShell 7.4+ (`pwsh`), the `PacCopilotKit` module (PowerShell G
 
 Full documentation, client configs for VS Code and Codex CLI, environment variable reference, and troubleshooting: https://github.com/dgpblogster/pac-copilot-kit
 
-MIT license. By Mariano Gomez Bent.
+MIT license. By Mariano Gomez Bent, The Workbench Blog.
